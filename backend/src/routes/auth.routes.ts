@@ -1,0 +1,14 @@
+import { Router } from "express";
+import rateLimit from "express-rate-limit";
+import { requireAuth } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { changePasswordSchema, loginSchema, registerSchema } from "../validators/auth.validators";
+import * as c from "../controllers/auth.controller";
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: true, legacyHeaders: false });
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false, message: { error: "Too many login attempts — try again in a few minutes" } });
+export const authRouter = Router();
+authRouter.post("/register", authLimiter, validate({ body: registerSchema }), c.register);
+authRouter.post("/login", loginLimiter, validate({ body: loginSchema }), c.login);
+authRouter.post("/logout", requireAuth, c.logout);
+authRouter.get("/me", requireAuth, c.me);
+authRouter.post("/change-password", requireAuth, validate({ body: changePasswordSchema }), c.changePassword);

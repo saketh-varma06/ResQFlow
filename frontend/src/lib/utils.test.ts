@@ -1,0 +1,7 @@
+import { describe, it, expect } from "vitest";
+import { cn } from "./utils";
+describe("cn", () => {
+  it("merges class names and resolves Tailwind conflicts", () => {
+    expect(cn("px-2", "px-4", false && "hidden")).toBe("px-4");
+  });
+});

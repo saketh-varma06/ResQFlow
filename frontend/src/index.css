@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%; --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%; --card-foreground: 222.2 84% 4.9%;
+    --primary: 0 72% 45%; --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%; --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%; --muted-foreground: 215.4 16.3% 40%;
+    --accent: 210 40% 96.1%; --accent-foreground: 222.2 47.4% 11.2%;
+    --border: 214.3 31.8% 90%; --input: 214.3 31.8% 88%; --ring: 0 72% 45%;
+    --radius: 0.65rem;
+  }
+  /* Emergency Operations Command theme (responder + admin) */
+  .command {
+    --background: 222 47% 6%; --foreground: 210 40% 96%;
+    --card: 222 44% 10%; --card-foreground: 210 40% 96%;
+    --primary: 0 84% 55%; --primary-foreground: 210 40% 98%;
+    --secondary: 217 33% 16%; --secondary-foreground: 210 40% 96%;
+    --muted: 217 33% 14%; --muted-foreground: 215 20% 68%;
+    --accent: 217 33% 18%; --accent-foreground: 210 40% 96%;
+    --border: 217 33% 19%; --input: 217 33% 22%; --ring: 0 84% 55%;
+  }
+  * { @apply border-border; }
+  html { scroll-behavior: smooth; }
+  body { @apply bg-background text-foreground font-sans antialiased; margin: 0; }
+  :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+}
+.leaflet-container { height: 100%; width: 100%; border-radius: 0.65rem; z-index: 0; }
+.map-pin { display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:9999px; border:2px solid #fff; color:#fff; font-size:11px; font-weight:700; box-shadow:0 2px 8px rgb(0 0 0/.4); }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgb(220 38 38 / .45);} 100% { box-shadow: 0 0 0 22px rgb(220 38 38 / 0);} }
+.sos-pulse { animation: pulse-ring 1.6s ease-out infinite; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+.fade-up { animation: fade-up .35s ease both; }

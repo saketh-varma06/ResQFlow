@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { optionalAuth, requireAuth, requireRole } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { idParam } from "../validators/common";
+import { createAlertSchema, listAlertsQuery, updateAlertSchema } from "../validators/alert.validators";
+import * as c from "../controllers/alert.controller";
+export const alertRouter = Router();
+alertRouter.get("/", optionalAuth, validate({ query: listAlertsQuery }), c.list);
+alertRouter.get("/:id", optionalAuth, validate({ params: idParam }), c.getOne);
+alertRouter.post("/", requireAuth, requireRole("ADMIN"), validate({ body: createAlertSchema }), c.create);
+alertRouter.patch("/:id", requireAuth, requireRole("ADMIN"), validate({ params: idParam, body: updateAlertSchema }), c.update);
+alertRouter.delete("/:id", requireAuth, requireRole("ADMIN"), validate({ params: idParam }), c.remove);

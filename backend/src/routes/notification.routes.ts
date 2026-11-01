@@ -1,0 +1,13 @@
+import { Router } from "express";
+import { requireAuth } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { idParam } from "../validators/common";
+import { listNotificationsQuery } from "../validators/notification.validators";
+import * as c from "../controllers/notification.controller";
+export const notificationRouter = Router();
+notificationRouter.use(requireAuth);
+notificationRouter.get("/", validate({ query: listNotificationsQuery }), c.list);
+notificationRouter.get("/unread-count", c.unreadCount);
+notificationRouter.post("/read-all", c.markAllRead);
+notificationRouter.patch("/:id/read", validate({ params: idParam }), c.markRead);
+notificationRouter.delete("/:id", validate({ params: idParam }), c.remove);

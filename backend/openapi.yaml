@@ -1,0 +1,311 @@
+openapi: 3.0.3
+info:
+  title: ResQFlow API
+  version: 2.0.0
+  description: |
+    Disaster Management & Emergency Response Platform — backend with real authentication (Phase 3).
+    Phase 4: incidents and SOS share one validated status workflow
+    (SUBMITTED -> ACKNOWLEDGED -> ASSIGNED -> IN_PROGRESS -> RESOLVED -> CLOSED; SOS also CANCELLED)
+    and every record carries an explainable rule-based priorityScore / priorityLevel / priorityReasons
+    (a dispatcher sorting aid — NOT a medically validated triage algorithm).
+    Web sessions: POST /api/auth/login sets an httpOnly `resqflow_session` cookie plus a readable
+    `resqflow_csrf` cookie — mutating cookie requests must echo the CSRF value in `x-csrf-token`.
+    API clients may instead send `Authorization: Bearer <JWT>` (CSRF-exempt).
+    Sessions are invalidated server-side on logout / password change (per-user tokenVersion).
+    Demo accounts (local development only) are listed in prisma/seed.ts and the README.
+servers:
+  - url: http://localhost:4000
+    description: Local development
+tags:
+  - { name: Health }
+  - { name: Auth }
+  - { name: Users }
+  - { name: Incidents }
+  - { name: SOS }
+  - { name: Responders }
+  - { name: Shelters }
+  - { name: Alerts }
+  - { name: Notifications }
+  - { name: Analytics }
+  - { name: Audit }
+security:
+  - bearerAuth: []
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      security: []
+      summary: Service + database health
+      responses: { "200": { description: OK — status, service, phase, database and timestamp fields } }
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Register (citizens activate immediately; RESPONDER/ADMIN roles are created PENDING approval)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/RegisterInput" } } } }
+      responses: { "201": { description: Created — user, token (null for pending roles) and optional message }, "400": { $ref: "#/components/responses/Error" }, "409": { $ref: "#/components/responses/Error" } }
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Login with email + password (bcrypt-verified, JWT issued)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, password], properties: { email: { type: string, format: email }, password: { type: string } } } } } }
+      responses: { "200": { description: User plus JWT token }, "401": { $ref: "#/components/responses/Error" }, "403": { $ref: "#/components/responses/Error" } }
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user (with responder profile if any)
+      responses: { "200": { description: User object without passwordHash }, "401": { $ref: "#/components/responses/Error" } }
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (stateless JWT — client discards the token)
+      responses: { "200": { description: OK } }
+  /api/auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change own password
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [currentPassword, newPassword], properties: { currentPassword: { type: string }, newPassword: { type: string, minLength: 8 } } } } } }
+      responses: { "200": { description: OK }, "400": { $ref: "#/components/responses/Error" } }
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List users (ADMIN) — filters role, status, area, search; paginated
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }, { name: role, in: query, schema: { $ref: "#/components/schemas/UserRole" } }, { name: status, in: query, schema: { type: string, enum: [ACTIVE, PENDING, SUSPENDED] } }]
+      responses: { "200": { $ref: "#/components/responses/Paginated" }, "403": { $ref: "#/components/responses/Error" } }
+  /api/users/me:
+    patch:
+      tags: [Users]
+      summary: Update own profile (name, phone, area, address, bloodGroup, medicalNotes)
+      responses: { "200": { description: Updated user }, "400": { $ref: "#/components/responses/Error" } }
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get a user (self, RESPONDER or ADMIN)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses: { "200": { description: User }, "404": { $ref: "#/components/responses/Error" } }
+    patch:
+      tags: [Users]
+      summary: Admin update (incl. role/status)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses: { "200": { description: Updated user }, "403": { $ref: "#/components/responses/Error" } }
+    delete:
+      tags: [Users]
+      summary: Delete a user (ADMIN, not self)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses: { "200": { description: Deleted }, "400": { $ref: "#/components/responses/Error" } }
+  /api/incidents:
+    get:
+      tags: [Incidents]
+      summary: List incidents — filters status, severity, type, area, mine, search; paginated
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }, { name: status, in: query, schema: { $ref: "#/components/schemas/IncidentStatus" } }, { name: severity, in: query, schema: { $ref: "#/components/schemas/Severity" } }, { name: mine, in: query, schema: { type: boolean } }]
+      responses: { "200": { $ref: "#/components/responses/Paginated" } }
+    post:
+      tags: [Incidents]
+      summary: Report an incident (any authenticated user)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/IncidentInput" } } } }
+      responses: { "201": { description: Created incident (status REPORTED, history entry written) }, "400": { $ref: "#/components/responses/Error" } }
+  /api/incidents/{id}:
+    get:
+      tags: [Incidents]
+      summary: Incident detail incl. assignments and full status history
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses: { "200": { description: Incident }, "404": { $ref: "#/components/responses/Error" } }
+    patch:
+      tags: [Incidents]
+      summary: Edit incident fields (reporter while REPORTED, or ADMIN)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses: { "200": { description: Updated }, "403": { $ref: "#/components/responses/Error" } }
+    delete:
+      tags: [Incidents]
+      summary: Delete incident (ADMIN)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses: { "200": { description: Deleted } }
+  /api/incidents/{id}/status:
+    patch:
+      tags: [Incidents]
+      summary: Change status (ADMIN, or the RESPONDER unit assigned) — writes IncidentStatusHistory, notifies the reporter, emits `incident:updated`
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status], properties: { status: { $ref: "#/components/schemas/IncidentStatus" }, note: { type: string } } } } } }
+      responses: { "200": { description: Updated incident }, "403": { $ref: "#/components/responses/Error" } }
+  /api/incidents/{id}/assign:
+    post:
+      tags: [Incidents]
+      summary: Assign a responder unit (ADMIN) — creates IncidentAssignment, moves incident to ASSIGNED, notifies unit + reporter
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [responderProfileId], properties: { responderProfileId: { type: string }, notes: { type: string } } } } } }
+      responses: { "201": { description: Assignment }, "404": { $ref: "#/components/responses/Error" } }
+  /api/incidents/{id}/notes:
+    post:
+      tags: [Incidents]
+      summary: Add a response note (RESPONDER assigned to the incident, or ADMIN) — appended to the incident timeline, reporter notified
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [note], properties: { note: { type: string, maxLength: 1000 } } } } } }
+      responses: { "201": { description: Timeline entry }, "403": { $ref: "#/components/responses/Error" } }
+  /api/incidents/{id}/accept:
+    post: { tags: [Incidents], summary: "Responder: accept my assignment (incident → IN_PROGRESS)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Assignment } } }
+  /api/incidents/{id}/decline:
+    post: { tags: [Incidents], summary: "Responder: decline my assignment", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Assignment } } }
+  /api/incidents/{id}/complete:
+    post: { tags: [Incidents], summary: "Responder: complete my assignment (incident → RESOLVED, reporter notified)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Assignment } } }
+  /api/sos:
+    get:
+      tags: [SOS]
+      summary: List SOS requests (citizens see only their own; responders/admins see all) — filter status
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }, { name: status, in: query, schema: { type: string, enum: [NEW, ACKNOWLEDGED, TEAM_ASSIGNED, RESOLVED, CANCELLED] } }]
+      responses: { "200": { $ref: "#/components/responses/Paginated" } }
+    post:
+      tags: [SOS]
+      summary: Create an SOS request — responders are notified in real time (`sos:created`)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [need, location], properties: { need: { type: string }, people: { type: integer, minimum: 1 }, location: { type: string }, area: { type: string }, latitude: { type: number }, longitude: { type: number }, details: { type: string }, phone: { type: string } } } } } }
+      responses: { "201": { description: Created SOS }, "400": { $ref: "#/components/responses/Error" } }
+  /api/sos/{id}:
+    get: { tags: [SOS], summary: Get one SOS request, parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: SOS }, "404": { $ref: "#/components/responses/Error" } } }
+  /api/sos/{id}/status:
+    patch:
+      tags: [SOS]
+      summary: Change SOS status (RESPONDER/ADMIN; citizens may only CANCEL their own)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status], properties: { status: { type: string, enum: [NEW, ACKNOWLEDGED, TEAM_ASSIGNED, RESOLVED, CANCELLED] } } } } } }
+      responses: { "200": { description: Updated SOS }, "403": { $ref: "#/components/responses/Error" } }
+  /api/sos/{id}/assign:
+    post:
+      tags: [SOS]
+      summary: Assign SOS to a unit (RESPONDER self-assigns; ADMIN assigns any unit) — status becomes TEAM_ASSIGNED
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [responderProfileId], properties: { responderProfileId: { type: string } } } } } }
+      responses: { "200": { description: Updated SOS } }
+  /api/responders:
+    get:
+      tags: [Responders]
+      summary: List responder units — filters readiness, unitType, search
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }, { name: readiness, in: query, schema: { type: string, enum: [AVAILABLE, DEPLOYED, STANDBY, OFF_DUTY] } }]
+      responses: { "200": { $ref: "#/components/responses/Paginated" } }
+    post:
+      tags: [Responders]
+      summary: Create a responder unit (ADMIN) — for an existing userId, or by creating an account from email+name+password
+      responses: { "201": { description: Responder profile }, "409": { $ref: "#/components/responses/Error" } }
+  /api/responders/me/availability:
+    patch:
+      tags: [Responders]
+      summary: Update my own availability/readiness (RESPONDER)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [readiness], properties: { readiness: { type: string, enum: [AVAILABLE, DEPLOYED, STANDBY, OFF_DUTY] } } } } } }
+      responses: { "200": { description: My responder profile }, "403": { $ref: "#/components/responses/Error" } }
+  /api/responders/me/profile:
+    get: { tags: [Responders], summary: My responder profile (RESPONDER), responses: { "200": { description: Profile }, "404": { $ref: "#/components/responses/Error" } } }
+  /api/responders/{id}:
+    get: { tags: [Responders], summary: Get a unit, parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Unit } } }
+    patch: { tags: [Responders], summary: Update a unit (ADMIN or the unit's own user; rating is ADMIN-only), parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Unit } } }
+    delete: { tags: [Responders], summary: Delete a unit (ADMIN), parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Deleted } } }
+  /api/shelters:
+    get:
+      tags: [Shelters]
+      security: []
+      summary: List shelters (public) — filters area, status, withSpace, search
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }, { name: area, in: query, schema: { type: string } }, { name: withSpace, in: query, schema: { type: boolean } }]
+      responses: { "200": { $ref: "#/components/responses/Paginated" } }
+    post:
+      tags: [Shelters]
+      summary: Create shelter (ADMIN) — status is derived from occupancy unless CLOSED
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name, address, area, capacity], properties: { name: { type: string }, address: { type: string }, area: { type: string }, capacity: { type: integer, minimum: 1 }, occupied: { type: integer, minimum: 0 }, facilities: { type: array, items: { type: string } }, contact: { type: string }, latitude: { type: number }, longitude: { type: number } } } } } }
+      responses: { "201": { description: Shelter }, "400": { description: Includes occupied > capacity } }
+  /api/shelters/{id}:
+    get: { tags: [Shelters], security: [], summary: Get a shelter, parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Shelter } } }
+    patch: { tags: [Shelters], summary: Update shelter / occupancy (ADMIN), parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Shelter }, "400": { $ref: "#/components/responses/Error" } } }
+    delete: { tags: [Shelters], summary: Delete shelter (ADMIN), parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Deleted } } }
+  /api/alerts:
+    get:
+      tags: [Alerts]
+      security: []
+      summary: List alerts — public/citizen callers see ACTIVE only; ADMIN sees all and may filter by status
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }, { name: severity, in: query, schema: { $ref: "#/components/schemas/Severity" } }, { name: area, in: query, schema: { type: string } }]
+      responses: { "200": { $ref: "#/components/responses/Paginated" } }
+    post:
+      tags: [Alerts]
+      summary: Create alert (ADMIN) — when ACTIVE, citizens in the area are notified and `reach` records how many
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [title, type, severity, area, instructions], properties: { title: { type: string }, type: { type: string }, severity: { $ref: "#/components/schemas/Severity" }, area: { type: string }, instructions: { type: string }, source: { type: string }, status: { type: string, enum: [DRAFT, ACTIVE] }, expiresAt: { type: string, format: date-time } } } } } }
+      responses: { "201": { description: Alert }, "403": { $ref: "#/components/responses/Error" } }
+  /api/alerts/{id}:
+    get: { tags: [Alerts], security: [], summary: Get an alert, parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Alert } } }
+    patch: { tags: [Alerts], summary: Update alert incl. status EXPIRED/CANCELLED (ADMIN), parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Alert } } }
+    delete: { tags: [Alerts], summary: Delete alert (ADMIN), parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Deleted } } }
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: My notifications — filter unreadOnly; paginated, newest first
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }, { name: unreadOnly, in: query, schema: { type: boolean } }]
+      responses: { "200": { $ref: "#/components/responses/Paginated" } }
+  /api/notifications/unread-count:
+    get: { tags: [Notifications], summary: My unread count, responses: { "200": { description: Unread count } } }
+  /api/notifications/read-all:
+    post: { tags: [Notifications], summary: Mark all my notifications read, responses: { "200": { description: Number updated } } }
+  /api/notifications/{id}/read:
+    patch: { tags: [Notifications], summary: Mark one notification read (owner only), parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Notification }, "404": { $ref: "#/components/responses/Error" } } }
+  /api/notifications/{id}:
+    delete: { tags: [Notifications], summary: Delete one of my notifications, parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Deleted } } }
+  /api/external/overview:
+    get:
+      tags: [External data]
+      summary: Live public-source data — Open-Meteo weather, USGS regional earthquakes (M4.5+, past day), GDACS alerts. Each source carries source, sourceUrl, fetchedAt, stale and status; unavailable sources return data:null (never fabricated). Cached server-side (10/5/15 min).
+      parameters:
+        - { name: lat, in: query, schema: { type: number }, description: "Weather latitude (default Delhi 28.63)" }
+        - { name: lon, in: query, schema: { type: number }, description: "Weather longitude (default 77.21)" }
+      responses: { "200": { description: External overview }, "401": { $ref: "#/components/responses/Error" } }
+  /api/external/geocode:
+    get:
+      tags: [External data]
+      summary: Place search via the Open-Meteo Geocoding API (keyless, cached 10 min) — returns up to 5 places with coordinates, each block carrying source/fetchedAt/stale/status provenance.
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 80 }, description: "Place name to search" }
+      responses: { "200": { description: Geocoding results }, "400": { $ref: "#/components/responses/Error" }, "401": { $ref: "#/components/responses/Error" } }
+  /api/analytics/overview:
+    get:
+      tags: [Analytics]
+      summary: Operational overview (ADMIN/RESPONDER) — user/incident/SOS counts by status & type, shelter occupancy, last-7-days series, average resolution time
+      responses: { "200": { description: Overview object }, "403": { $ref: "#/components/responses/Error" } }
+  /api/audit-logs:
+    get:
+      tags: [Audit]
+      summary: Audit log (ADMIN) — filters result, action, actorId, search; paginated
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }, { name: result, in: query, schema: { type: string, enum: [SUCCESS, DENIED, WARNING] } }]
+      responses: { "200": { $ref: "#/components/responses/Paginated" }, "403": { $ref: "#/components/responses/Error" } }
+  /api/audit-logs/{id}:
+    get: { tags: [Audit], summary: One audit entry (ADMIN), parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Entry } } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string } }
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+  responses:
+    Error: { description: Error, content: { application/json: { schema: { type: object, properties: { error: { type: string }, details: {} } } } } }
+    Paginated: { description: Paginated list, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: {} }, meta: { type: object, properties: { total: { type: integer }, page: { type: integer }, limit: { type: integer }, pages: { type: integer } } } } } } } }
+  schemas:
+    UserRole: { type: string, enum: [CITIZEN, RESPONDER, ADMIN] }
+    Severity: { type: string, enum: [CRITICAL, HIGH, MODERATE, LOW] }
+    IncidentStatus: { type: string, enum: [REPORTED, VERIFIED, ASSIGNED, IN_PROGRESS, RESOLVED, CLOSED] }
+    RegisterInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: { type: string, minLength: 2 }
+        email: { type: string, format: email }
+        phone: { type: string }
+        password: { type: string, minLength: 8 }
+        role: { $ref: "#/components/schemas/UserRole" }
+        area: { type: string }
+        address: { type: string }
+    IncidentInput:
+      type: object
+      required: [title, type, severity, description, location, area]
+      properties:
+        title: { type: string, minLength: 5 }
+        type: { type: string, enum: [FLOOD, FIRE, STORM, LANDSLIDE, INFRASTRUCTURE, UTILITY, MEDICAL, HAZMAT, OTHER] }
+        severity: { $ref: "#/components/schemas/Severity" }
+        description: { type: string, minLength: 10 }
+        location: { type: string }
+        area: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        peopleAffected: { type: integer, minimum: 0 }

@@ -1,0 +1,10 @@
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { idParam } from "../validators/common";
+import { listAuditQuery } from "../validators/audit.validators";
+import * as c from "../controllers/audit.controller";
+export const auditRouter = Router();
+auditRouter.use(requireAuth, requireRole("ADMIN"));
+auditRouter.get("/", validate({ query: listAuditQuery }), c.list);
+auditRouter.get("/:id", validate({ params: idParam }), c.getOne);

@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { optionalAuth, requireAuth, requireRole } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { idParam } from "../validators/common";
+import { createShelterSchema, listSheltersQuery, updateShelterSchema } from "../validators/shelter.validators";
+import * as c from "../controllers/shelter.controller";
+export const shelterRouter = Router();
+shelterRouter.get("/", optionalAuth, validate({ query: listSheltersQuery }), c.list);
+shelterRouter.get("/:id", optionalAuth, validate({ params: idParam }), c.getOne);
+shelterRouter.post("/", requireAuth, requireRole("ADMIN"), validate({ body: createShelterSchema }), c.create);
+shelterRouter.patch("/:id", requireAuth, requireRole("ADMIN"), validate({ params: idParam, body: updateShelterSchema }), c.update);
+shelterRouter.delete("/:id", requireAuth, requireRole("ADMIN"), validate({ params: idParam }), c.remove);

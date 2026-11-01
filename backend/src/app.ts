@@ -1,0 +1,51 @@
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
+import swaggerUi from "swagger-ui-express";
+import { env } from "./config/env";
+import { healthRouter } from "./routes/health";
+import { authRouter } from "./routes/auth.routes";
+import { userRouter } from "./routes/user.routes";
+import { incidentRouter } from "./routes/incident.routes";
+import { sosRouter } from "./routes/sos.routes";
+import { responderRouter } from "./routes/responder.routes";
+import { shelterRouter } from "./routes/shelter.routes";
+import { alertRouter } from "./routes/alert.routes";
+import { notificationRouter } from "./routes/notification.routes";
+import { analyticsRouter } from "./routes/analytics.routes";
+import externalRouter from "./routes/external.routes";
+import { auditRouter } from "./routes/audit.routes";
+import { errorHandler, notFound } from "./middleware/error";
+import { csrfProtection } from "./middleware/csrf";
+import { loadOpenApiSpec } from "./docs/openapi";
+
+export const app = express();
+app.use(helmet());
+app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+app.use(express.json({ limit: "1mb" }));
+app.use(cookieParser());
+app.use("/api", rateLimit({ windowMs: 15 * 60 * 1000, limit: 600, standardHeaders: true, legacyHeaders: false }));
+app.use("/api", csrfProtection);
+
+app.use("/api", healthRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/users", userRouter);
+app.use("/api/incidents", incidentRouter);
+app.use("/api/sos", sosRouter);
+app.use("/api/responders", responderRouter);
+app.use("/api/shelters", shelterRouter);
+app.use("/api/alerts", alertRouter);
+app.use("/api/notifications", notificationRouter);
+app.use("/api/analytics", analyticsRouter);
+app.use("/api/external", externalRouter);
+app.use("/api/audit-logs", auditRouter);
+
+app.get("/api/docs.json", (_req, res) => res.json(loadOpenApiSpec()));
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(undefined, { swaggerOptions: { url: "/api/docs.json" } }));
+
+app.get("/", (_req, res) => res.json({ service: "resqflow-backend", phase: 2, docs: "/api/docs", health: "/api/health" }));
+app.use(notFound);
+app.use(errorHandler);
+export default app;

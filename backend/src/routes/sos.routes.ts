@@ -1,0 +1,13 @@
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { idParam } from "../validators/common";
+import { assignSosSchema, createSosSchema, listSosQuery, updateSosStatusSchema } from "../validators/sos.validators";
+import * as c from "../controllers/sos.controller";
+export const sosRouter = Router();
+sosRouter.use(requireAuth);
+sosRouter.post("/", validate({ body: createSosSchema }), c.create);
+sosRouter.get("/", validate({ query: listSosQuery }), c.list);
+sosRouter.get("/:id", validate({ params: idParam }), c.getOne);
+sosRouter.patch("/:id/status", validate({ params: idParam, body: updateSosStatusSchema }), c.updateStatus);
+sosRouter.post("/:id/assign", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam, body: assignSosSchema }), c.assign);

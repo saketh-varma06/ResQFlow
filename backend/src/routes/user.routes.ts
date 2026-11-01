@@ -1,0 +1,13 @@
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { idParam } from "../validators/common";
+import { adminUpdateUserSchema, listUsersQuery, updateProfileSchema } from "../validators/user.validators";
+import * as c from "../controllers/user.controller";
+export const userRouter = Router();
+userRouter.use(requireAuth);
+userRouter.get("/", requireRole("ADMIN"), validate({ query: listUsersQuery }), c.list);
+userRouter.patch("/me", validate({ body: updateProfileSchema }), c.updateMe);
+userRouter.get("/:id", validate({ params: idParam }), c.getOne);
+userRouter.patch("/:id", requireRole("ADMIN"), validate({ params: idParam, body: adminUpdateUserSchema }), c.adminUpdate);
+userRouter.delete("/:id", requireRole("ADMIN"), validate({ params: idParam }), c.remove);

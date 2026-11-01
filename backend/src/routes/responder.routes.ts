@@ -1,0 +1,15 @@
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { idParam } from "../validators/common";
+import { availabilitySchema, createResponderSchema, listRespondersQuery, updateResponderSchema } from "../validators/responder.validators";
+import * as c from "../controllers/responder.controller";
+export const responderRouter = Router();
+responderRouter.use(requireAuth);
+responderRouter.get("/", validate({ query: listRespondersQuery }), c.list);
+responderRouter.get("/me/profile", requireRole("RESPONDER"), c.me);
+responderRouter.patch("/me/availability", requireRole("RESPONDER"), validate({ body: availabilitySchema }), c.availability);
+responderRouter.get("/:id", validate({ params: idParam }), c.getOne);
+responderRouter.post("/", requireRole("ADMIN"), validate({ body: createResponderSchema }), c.create);
+responderRouter.patch("/:id", validate({ params: idParam, body: updateResponderSchema }), c.update);
+responderRouter.delete("/:id", requireRole("ADMIN"), validate({ params: idParam }), c.remove);

@@ -1,0 +1,11 @@
+export type Severity = "critical" | "high" | "moderate" | "low";
+export type IncidentStatus = "submitted" | "acknowledged" | "assigned" | "in-progress" | "resolved" | "closed" | "cancelled";
+export interface Incident { id: string; title: string; type: string; severity: Severity; status: IncidentStatus; location: string; area: string; reportedAt: string; reporter: string; assignedTo?: string; peopleAffected: number; description: string; lat: number; lng: number; }
+export interface Shelter { id: string; name: string; address: string; area: string; capacity: number; occupied: number; distanceKm: number; facilities: string[]; contact: string; status: "open" | "nearly-full" | "full" | "closed"; lat: number; lng: number; }
+export interface AlertItem { id: string; title: string; type: string; severity: Severity; area: string; issuedAt: string; expiresAt: string; source: string; instructions: string; status: "active" | "expired" | "draft" | "cancelled"; reach: number; }
+export interface HelpRequest { id: string; type: string; title: string; status: "pending" | "accepted" | "in-progress" | "completed" | "cancelled"; requestedAt: string; location: string; assignedTo?: string; eta?: string; notes: string; }
+export interface AppNotification { id: string; title: string; body: string; time: string; kind: "alert" | "request" | "system" | "shelter"; unread: boolean; }
+export interface PlatformUser { id: string; name: string; email: string; role: "Citizen" | "Responder" | "Admin"; status: "active" | "suspended" | "pending"; joined: string; area: string; reports: number; }
+export interface ResponderUnit { id: string; name: string; lead: string; type: string; status: "available" | "deployed" | "off-duty" | "standby"; base: string; members: number; activeIncidents: number; rating: number; }
+export interface AuditEntry { id: string; time: string; actor: string; role: string; action: string; target: string; result: "success" | "denied" | "warning"; ip: string; }
+export interface SosRequest { id: string; citizen: string; location: string; area: string; receivedAt: string; people: number; need: string; status: "submitted" | "acknowledged" | "assigned" | "in-progress" | "resolved" | "closed" | "cancelled"; lat: number; lng: number; phone: string; }
