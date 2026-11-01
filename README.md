@@ -44,7 +44,7 @@ validated status workflow.
 |---|---|
 | Frontend | React 19, TypeScript, Vite 8, Tailwind CSS 3, shadcn/ui (Radix), React Router, Recharts, Leaflet, socket.io-client, vite-plugin-pwa |
 | Backend | Node.js, Express 5, TypeScript, Prisma 6, Socket.IO, Zod, JWT + bcrypt, Helmet, rate limiting |
-| Database | PostgreSQL 16 (Prisma schema: 10 models, 4 migrations) |
+| Database | PostgreSQL 16 (Prisma schema: 11 models, 4 migrations) |
 | Tests | Vitest + supertest (backend 57 tests incl. realtime socket tests), Vitest (frontend) |
 | API docs | OpenAPI 3.0.3 at `GET /api/docs` (39 paths) |
 
