@@ -74,3 +74,144 @@ socket-level E2E (socket.io-client), and the scripted live workflow verification
   same ones exercised above.
 - Docker containers were not executed (Docker is not installed in this sandbox);
   compose/Dockerfiles are YAML-verified only.
+
+## Critical database persistence tests — 1 Nov 2026 (PostgreSQL)
+
+STEP D: database-level proof against the **current running PostgreSQL**
+(user-space PostgreSQL 16.2, databases `resqflow` / `resqflow_test`, user
+`resqflow`), executed live against the running backend on
+`http://localhost:4000` with `curl` cookie jars (CSRF double-submit header on
+cookie-auth mutations) and direct `psql` verification via
+`scripts/pg-local.sh psql`. All results below are actual observed values from
+this run. The test citizen created for this run:
+`dbtest-1793556601@resqflow.local`, user id `cmvy5ajhj0062zsxtg3skkv8x`.
+
+### Test 1 — Registration + password hashing
+
+- **Done:** `POST /api/auth/register` with a fresh citizen
+  (`dbtest-1793556601@resqflow.local`, role CITIZEN, area Guwahati).
+- **Expected:** HTTP 201; a `User` row in PostgreSQL whose `passwordHash` is a
+  bcrypt hash, not the plaintext password.
+- **Actual:** HTTP **201**, user id `cmvy5ajhj0062zsxtg3skkv8x`. psql:
+  `SELECT … FROM "User" WHERE email = …` returned 1 row — role `CITIZEN`,
+  status `ACTIVE`, `length(passwordHash) = 60`, hash prefix `$2b$`,
+  and `passwordHash = <plaintext>` evaluated to `false`.
+- **Result: PASS**
+
+### Test 2 — Login (correct and wrong password)
+
+- **Done:** `POST /api/auth/login` with the correct password, then
+  `GET /api/auth/me` with the session jar; separately, login with a wrong
+  password.
+- **Expected:** correct login 200 with a working session (`/me` 200); wrong
+  password 401.
+- **Actual:** correct login HTTP **200** (token issued, same user id
+  `cmvy5ajhj0062zsxtg3skkv8x`); `GET /api/auth/me` HTTP **200** returning that
+  user; wrong password HTTP **401** (`Invalid email or password`).
+- **Result: PASS**
+
+### Test 3 — SOS creation, API read-back, and DB row
+
+- **Done:** as the test citizen, `POST /api/sos` with category `FLOOD`,
+  `people: 4`, `injuriesReported: 1`, `trapped: true`, location
+  "DB Test Street, Guwahati"; then `GET /api/sos/:id`; then psql checks on
+  `SOSRequest` and `SOSStatusHistory`.
+- **Expected:** 201 with an id; read-back fields match the submission with
+  status `SUBMITTED` and a `SUBMITTED` status-history entry; matching row in
+  PostgreSQL.
+- **Actual:** HTTP **201**, SOS id `cmvy5auhr006czsxt2ol86yuh`,
+  priorityScore 50 / priorityLevel `HIGH` (reasons include trapped +15).
+  Read-back matched every submitted field, status `SUBMITTED`,
+  `statusHistory` = 1 entry (`fromStatus` null → `toStatus` `SUBMITTED`,
+  note "SOS submitted"). psql: `SOSRequest` row present with the same id,
+  status `SUBMITTED`, category `FLOOD`, people 4, trapped `t`,
+  injuriesReported 1; `SOSStatusHistory` has the corresponding `SUBMITTED`
+  row.
+- **Result: PASS**
+
+### Test 4 — Incident update + status history
+
+- **Done:** as the citizen, `POST /api/incidents` (FLOOD, HIGH,
+  peopleAffected 12); as admin (`admin@resqflow.local`),
+  `PATCH /api/incidents/:id/status` → `ACKNOWLEDGED`; re-GET; psql check on
+  `Incident` and `IncidentStatusHistory` (model name confirmed in
+  `backend/prisma/schema.prisma`).
+- **Expected:** incident created `SUBMITTED`; the valid transition persists;
+  a history row records `SUBMITTED → ACKNOWLEDGED`.
+- **Actual:** create HTTP **201**, incident id
+  `cmvy5ay1t006lzsxtyxr340gc`, status `SUBMITTED`. Admin login 200; PATCH
+  HTTP **200**; re-GET status `ACKNOWLEDGED`. psql: `Incident.status =
+  ACKNOWLEDGED`; `IncidentStatusHistory` has **2 rows** for the incident —
+  (null → `SUBMITTED`, changed by the citizen) and (`SUBMITTED` →
+  `ACKNOWLEDGED`, changed by the admin user id
+  `cmvy544u00000zss989v1xsic`).
+- **Result: PASS**
+
+### Test 5 — Shelter create + occupied update
+
+- **Done:** as admin, `POST /api/shelters` (capacity 200, occupied 10);
+  `PATCH /api/shelters/:id` with `occupied: 47`; re-GET; psql check on
+  `Shelter`.
+- **Expected:** 201 on create; the occupied change persists on read-back and
+  in the database; `available` recomputed server-side.
+- **Actual:** create HTTP **201**, shelter id
+  `cmvy5b5oq006zzsxthzsu733d`, `available` 190. PATCH HTTP **200**;
+  re-GET: occupied **47**, capacity 200, available **153**, status `OPEN`.
+  psql: `Shelter` row with the same id shows capacity 200, occupied 47,
+  status `OPEN`.
+- **Result: PASS**
+
+### Test 6 — Restart persistence (core proof)
+
+- **Done:** backend PID found via `ss -ltnp | grep :4000` = **2513**; that
+  numeric PID was killed (port 4000 confirmed free); backend restarted with
+  `nohup node dist/index.js` from `backend/` (log
+  `/tmp/resqflow-backend.log`); health checked; then a **fresh** citizen
+  login jar was created and the test-3 SOS, test-5 shelter, and test-4
+  incident were re-fetched.
+- **Expected:** `GET /api/health` → status ok, database up; all previously
+  created records still present with the same ids and statuses after the
+  restart — i.e. data lives in PostgreSQL, not in process memory.
+- **Actual:** health after restart: `status ok`, `database up`. New backend
+  PID **3571**. Fresh login HTTP **200**. Re-GET SOS
+  `cmvy5auhr006czsxt2ol86yuh` → status `SUBMITTED`, category `FLOOD`,
+  people 4, trapped true, history [`SUBMITTED`]. Re-GET shelter
+  `cmvy5b5oq006zzsxthzsu733d` → occupied 47, capacity 200, available 153,
+  status `OPEN`. Re-GET incident `cmvy5ay1t006lzsxtyxr340gc` → status
+  `ACKNOWLEDGED`.
+- **Result: PASS**
+
+### Test 7 — Authorization matrix
+
+- **Done:** three negative checks with the jars from the earlier tests
+  (responder account `responder@resqflow.local`, login 200).
+- **Expected / Actual:**
+  - Citizen jar → `GET /api/analytics/overview`: expected 403, actual
+    **403**.
+  - No jar → `GET /api/auth/me`: expected 401, actual **401** (also
+    `GET /api/incidents` without a jar: **401**).
+  - Responder jar → `GET /api/users`: expected 403, actual **403**
+    (`Requires role: ADMIN`).
+- **Result: PASS**
+
+### Summary
+
+| # | Test | Result |
+|---|---|---|
+| 1 | Registration + bcrypt hashing | PASS |
+| 2 | Login 200 / wrong password 401 | PASS |
+| 3 | SOS create + read-back + DB row + history | PASS |
+| 4 | Incident status update + history rows | PASS |
+| 5 | Shelter create + occupied update | PASS |
+| 6 | Backend restart persistence | PASS |
+| 7 | Authorization matrix (403 / 401 / 403) | PASS |
+
+**7/7 PASS.** No failures in this run. Environment left running: backend on
+:4000 (PID 3571, health `database up`), frontend dev on :5173 (HTTP 200).
+Test artefacts left in the database for inspection: citizen
+`dbtest-1793556601@resqflow.local` (`cmvy5ajhj0062zsxtg3skkv8x`), SOS
+`cmvy5auhr006czsxt2ol86yuh`, incident `cmvy5ay1t006lzsxtyxr340gc`, shelter
+`cmvy5b5oq006zzsxthzsu733d`. Login budget note: the run stayed economical
+with logins (register + citizen/admin/responder logins, one wrong-password
+attempt, one fresh post-restart login) and the rate limiter was never
+tripped.
