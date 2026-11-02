@@ -9,7 +9,7 @@ CrisisCleanup, HOT Tasking Manager, InaSAFE and ICRC family-tracing practice.
 
 **Stack:** React 19 + TypeScript + Vite + Tailwind + shadcn/ui · Express 5 + TypeScript ·
 Mongoose/MongoDB Atlas · Socket.IO · JWT + httpOnly cookies · Leaflet/OpenStreetMap ·
-OSRM routing · vite-plugin-pwa · OpenAPI 3.0.3 (78 paths).
+OSRM routing · vite-plugin-pwa · OpenAPI 3.0.3 (81 paths).
 
 ---
 
@@ -75,6 +75,16 @@ OSRM routing · vite-plugin-pwa · OpenAPI 3.0.3 (78 paths).
 - **Minimum-needs calculator** (Sphere/InaSAFE): from live occupancy — 15 L water and
   1 ration kit per person per day, blankets, household hygiene kits — with the standards
   and assumptions printed in the result.
+
+## 7b. Monetary donations (Stage H)
+- Donate to the **General Relief Fund**, a **specific shelter**, or a **specific incident**.
+- Honest payment design: ResQFlow does **not** process payments (no gateway account) — the
+  donor contributes by UPI/bank transfer outside the app and records it here with the
+  transaction reference. The donation starts as **PLEDGED** and only becomes **RECEIVED**
+  when a responder/admin verifies the reference at the Donations desk.
+- **Public transparency ledger:** only verified RECEIVED donations count in the totals;
+  donors can give anonymously (name masked publicly); donors are notified on verification;
+  pledges can be cancelled by the donor. Donation totals also appear in the SitRep.
 
 ## 8. Missing persons (Stage G) — privacy-first, ICRC-style
 - Any signed-in user files a report (last seen, description, circumstances, contact).
@@ -143,6 +153,7 @@ records without coordinates counted and listed (not silently lost), dispatch rou
 | Alert targeting | Broadcast to everyone | Geo-targeted cell broadcast (telco-only) | **District + radius subscriptions, severity floor, deduplicated reach** |
 | Offline behaviour | Breaks, or queues and duplicates | FieldTM/HOT design for field conditions | **Offline outbox with idempotency keys — retries can't duplicate a report** |
 | Relief supply | Shelter = a pin with a capacity number | Sahana matches requests ↔ pledges | **Itemised needs, capped pledges, staff-confirmed delivery, Sphere minimum-needs math** |
+| Money donations | A fake "Pay now" button or nothing | Real NGOs use payment gateways + audited accounts | **Donation ledger with human verification: pledged ≠ received, public totals count only verified money, anonymous giving supported** |
 | Missing persons | A public list of names (privacy hazard) | ICRC: tracing, not publishing | **No public list; existence non-disclosure (404); staff-only registry** |
 | Situation reports | Manual / absent | OCHA SitReps written by staff | **One-click SitRep generated only from live counts + after-action replay** |
 | External data | Static screenshots or fake "live" widgets | DisasterAWARE fuses many feeds (closed) | **5 live keyless feeds with source, timestamp, stale/unavailable honesty** |
@@ -157,8 +168,8 @@ API exists for those and platforms displaying them simulate the data. The OSRM d
 has no SLA; a production deployment should self-host routing.
 
 ## Verification numbers (2 Nov 2026)
-- Backend tests **96/96** across 13 files · frontend **1/1** · root build 0 TS errors · lint 0 errors.
-- Per-stage live E2E on the real Atlas DB: A 10/10 · B 8/8 · C 6/6 · D 6/6 · E 4/4 · F 5/5 · G 4/4.
+- Backend tests **100/100** across 14 files · frontend **1/1** · root build 0 TS errors · lint 0 errors.
+- Per-stage live E2E on the real Atlas DB: A 10/10 · B 8/8 · C 6/6 · D 6/6 · E 4/4 · F 5/5 · G 4/4 · H (donations) 5/5.
 - Earlier: 112-check backend audit (0 defects) · 24/24 cutover E2E · 32-endpoint parity diff
   vs the PostgreSQL build (identical) · socket scoping smoke 5/5.
-- OpenAPI: **78 paths**, served at `/api/docs`.
+- OpenAPI: **81 paths**, served at `/api/docs`.

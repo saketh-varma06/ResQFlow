@@ -1,4 +1,4 @@
-import { BellRing, Building2, ClipboardCheck, HeartHandshake, History, LayoutDashboard, ScrollText, ShieldCheck, Siren, TriangleAlert, Users, BarChart3 } from "lucide-react";
+import { BellRing, Building2, ClipboardCheck, Gift, HeartHandshake, History, LayoutDashboard, ScrollText, ShieldCheck, Siren, TriangleAlert, Users, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "./AppShell";
 import { useAuth } from "@/context/AuthContext";
@@ -21,6 +21,7 @@ const adminItems: NavItem[] = [
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/admin/audit", label: "Audit Logs", icon: ScrollText },
   { to: "/admin/missing", label: "Missing Persons", icon: HeartHandshake },
+  { to: "/admin/donations", label: "Donations", icon: Gift },
   { to: "/admin/map", label: "Operations Map", icon: LayoutDashboard },
 ];
 function useLogout() {

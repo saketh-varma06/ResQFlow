@@ -1,0 +1,11 @@
+import type { Request, Response } from "express";
+import { asyncHandler } from "../utils/asyncHandler";
+import { body, params, query } from "../middleware/validate";
+import * as svc from "../services/donation.service";
+import type { z } from "zod";
+import type { createDonationSchema, listDonationsQuery, updateDonationStatusSchema } from "../validators/donation.validators";
+import type { idParam } from "../validators/common";
+export const list = asyncHandler(async (req: Request, res: Response) => { res.json(await svc.listDonations(req.user!, query<z.infer<typeof listDonationsQuery>>(req))); });
+export const summary = asyncHandler(async (_req: Request, res: Response) => { res.json({ data: await svc.donationSummary() }); });
+export const create = asyncHandler(async (req: Request, res: Response) => { res.status(201).json({ data: await svc.createDonation(req.user!, body<z.infer<typeof createDonationSchema>>(req), req.ip) }); });
+export const updateStatus = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.updateDonationStatus(req.user!, params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof updateDonationStatusSchema>>(req), req.ip) }); });

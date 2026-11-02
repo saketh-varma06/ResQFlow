@@ -103,6 +103,10 @@ export const CAP_SEVERITIES = ["Extreme", "Severe", "Moderate", "Minor", "Unknow
 /** How a citizen's alert subscription targets an area. */
 export const ALERT_SUB_MODES = ["DISTRICT", "RADIUS"] as const;
 
+/** Monetary donations (Stage H). */
+export const DONATION_TARGET_TYPES = ["GENERAL", "SHELTER", "INCIDENT"] as const;
+export const DONATION_STATUSES = ["PLEDGED", "RECEIVED", "CANCELLED"] as const;
+
 /** Missing persons registry (Stage G). */
 export const MISSING_PERSON_STATUSES = ["REPORTED", "SEARCHING", "FOUND_ALIVE", "FOUND_DECEASED", "CLOSED"] as const;
 

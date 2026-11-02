@@ -255,6 +255,13 @@ paths:
     get: { tags: [MissingPersons], summary: "Stage G: one report — reporter or staff only; other citizens get 404 (existence is not disclosed)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Report }, "404": { $ref: "#/components/responses/Error" } } }
   /api/missing-persons/{id}/status:
     patch: { tags: [MissingPersons], summary: "Stage G: tracing status update (RESPONDER/ADMIN); FOUND_* requires a resolution note; reporter is notified", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Report } } }
+  /api/donations:
+    get: { tags: [Donations], summary: "Stage H: citizens get the public ledger (RECEIVED only) or ?mine=true for their own; staff get the full list with filters", responses: { "200": { description: Donations } } }
+    post: { tags: [Donations], summary: "Stage H: record a donation pledge (GENERAL fund, SHELTER or INCIDENT target; staff verify receipt separately)", requestBody: { required: true, content: { application/json: { schema: { type: object, required: [amount], properties: { amount: { type: integer }, targetType: { type: string, enum: [GENERAL, SHELTER, INCIDENT] }, targetId: { type: string }, paymentRef: { type: string }, message: { type: string }, anonymous: { type: boolean } } } } } }, responses: { "201": { description: Donation (PLEDGED) } } }
+  /api/donations/summary:
+    get: { tags: [Donations], summary: "Stage H: public transparency totals — only staff-verified RECEIVED donations count", responses: { "200": { description: Summary } } }
+  /api/donations/{id}/status:
+    patch: { tags: [Donations], summary: "Stage H: verify RECEIVED (staff) or CANCEL a pledge (donor/staff)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Donation } } }
   /api/responders:
     get:
       tags: [Responders]

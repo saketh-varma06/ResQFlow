@@ -15,6 +15,7 @@ export { ShelterNeedModel, type ShelterNeed } from "./ShelterNeed";
 export { PledgeModel, type Pledge } from "./Pledge";
 export { ChecklistStateModel, FieldReportModel, type ChecklistState, type FieldReport } from "./FieldKit";
 export { MissingPersonModel, type MissingPerson } from "./MissingPerson";
+export { DonationModel, type Donation } from "./Donation";
 
 import { UserModel } from "./User";
 import { ResponderModel } from "./Responder";
@@ -32,6 +33,7 @@ import { ShelterNeedModel } from "./ShelterNeed";
 import { PledgeModel } from "./Pledge";
 import { ChecklistStateModel, FieldReportModel } from "./FieldKit";
 import { MissingPersonModel } from "./MissingPerson";
+import { DonationModel } from "./Donation";
 
 /** All models, for index sync and test cleanup. */
 export const ALL_MODELS = [
@@ -52,4 +54,5 @@ export const ALL_MODELS = [
   ChecklistStateModel,
   FieldReportModel,
   MissingPersonModel,
+  DonationModel,
 ] as const;

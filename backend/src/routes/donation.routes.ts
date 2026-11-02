@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { requireAuth } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { idParam } from "../validators/common";
+import { createDonationSchema, listDonationsQuery, updateDonationStatusSchema } from "../validators/donation.validators";
+import * as c from "../controllers/donation.controller";
+export const donationRouter = Router();
+donationRouter.use(requireAuth);
+donationRouter.get("/summary", c.summary);
+donationRouter.get("/", validate({ query: listDonationsQuery }), c.list);
+donationRouter.post("/", validate({ body: createDonationSchema }), c.create);
+donationRouter.patch("/:id/status", validate({ params: idParam, body: updateDonationStatusSchema }), c.updateStatus);

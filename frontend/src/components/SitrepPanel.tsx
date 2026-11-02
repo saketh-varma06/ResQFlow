@@ -78,6 +78,8 @@ export function SitrepPanel() {
               <p className="font-semibold">Shelters</p>
               <p className="mt-1 text-muted-foreground">{r.shelters.occupied} of {r.shelters.capacity} places occupied across {r.shelters.count} shelters ({r.shelters.utilizationPercent}%).</p>
               {r.shelters.fullShelters.length > 0 && <p className="text-red-700">Full: {r.shelters.fullShelters.join(", ")}</p>}
+              {r.donations && <><p className="mt-2 font-semibold">Donations</p>
+              <p className="text-muted-foreground">Verified received ₹{r.donations.receivedTotal.toLocaleString("en-IN")} ({r.donations.receivedCount}) · pledged ₹{r.donations.pledgedTotal.toLocaleString("en-IN")} awaiting verification</p></>}
               <p className="mt-2 font-semibold">Active alerts</p>
               <ul className="mt-1 space-y-0.5 text-muted-foreground">{r.activeAlertTitles.map((t) => <li key={t}>{t}</li>)}{r.activeAlertTitles.length === 0 && <li>None.</li>}</ul>
             </div>

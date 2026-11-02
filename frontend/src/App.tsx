@@ -17,6 +17,8 @@ const AlertsPage = lazy(() => import("@/pages/citizen/AlertsPage"));
 const RequestsPage = lazy(() => import("@/pages/citizen/RequestsPage"));
 const NotificationsPage = lazy(() => import("@/pages/citizen/NotificationsPage"));
 const CitizenMissingPage = lazy(() => import("@/pages/citizen/MissingPersonsPage"));
+const DonationsPage = lazy(() => import("@/pages/citizen/DonationsPage"));
+const DonationsManagement = lazy(() => import("@/pages/admin/DonationsManagement"));
 const MissingRegistryPage = lazy(() => import("@/pages/shared/MissingPersonsRegistryPage"));
 const ProfilePage = lazy(() => import("@/pages/citizen/ProfilePage"));
 const CommandCentre = lazy(() => import("@/pages/responder/CommandCentre"));
@@ -55,6 +57,7 @@ export default function App() {
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="requests" element={<RequestsPage />} />
         <Route path="missing" element={<CitizenMissingPage />} />
+        <Route path="donations" element={<DonationsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
@@ -74,6 +77,7 @@ export default function App() {
         <Route path="alerts" element={<AlertManagement />} />
         <Route path="shelters" element={<ShelterManagement />} />
         <Route path="missing" element={<MissingRegistryPage />} />
+        <Route path="donations" element={<DonationsManagement />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="responders" element={<ResponderManagement />} />
         <Route path="analytics" element={<AnalyticsPage />} />

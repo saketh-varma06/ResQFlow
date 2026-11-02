@@ -94,3 +94,12 @@ gated on: root build → new tests → live end-to-end run → commit.
 Full-suite regression result (final gate): **96/96 backend tests + 1/1 frontend**, root build clean, lint 0 errors — detail in `docs/TEST_REPORT.md`.
 No Grok API key was needed at any point — every addition runs on keyless public feeds
 (OSRM, NASA EONET, Open-Meteo/GloFAS) or on the platform's own data.
+
+## Addendum — Stage H: monetary donations (added 2 Nov 2026, commit pending below)
+The user flagged a genuine gap: Stage D covered *goods* pledges, not money. Stage H adds a
+donation ledger: donate to the general fund, a shelter, or an incident; donations start
+PLEDGED with an optional UPI/bank transaction reference and become RECEIVED only on staff
+verification (the app processes no payments — stated plainly in the UI and API). Public
+summary counts verified money only; anonymous donors are masked; donors are notified on
+verification; totals flow into the SitRep. Tests: donations.test.ts 4/4; live E2E 5/5.
+OpenAPI 78 → 81 paths; backend suite now 100 tests across 14 files.

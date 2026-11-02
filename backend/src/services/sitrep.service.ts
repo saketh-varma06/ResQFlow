@@ -1,4 +1,4 @@
-import { AlertModel, AuditLogModel, IncidentModel, ShelterModel, SosRequestModel, StatusHistoryModel } from "../models";
+import { AlertModel, AuditLogModel, DonationModel, IncidentModel, ShelterModel, SosRequestModel, StatusHistoryModel } from "../models";
 
 /**
  * One-click Situation Report (Stage F) — a CARE/OCHA-style SitRep generated from
@@ -19,6 +19,7 @@ export interface Sitrep {
   busiestAreas: { area: string; openReports: number }[];
   shelters: { count: number; capacity: number; occupied: number; utilizationPercent: number; fullShelters: string[] };
   activeAlertTitles: string[];
+  donations: { receivedTotal: number; receivedCount: number; pledgedTotal: number; pledgedCount: number };
   topPriorities: { kind: string; title: string; area: string; priorityScore: number; priorityLevel: string; status: string }[];
 }
 
@@ -47,6 +48,10 @@ export async function buildSitrep(): Promise<Sitrep> {
     areaCount.set(i.area, (areaCount.get(i.area) ?? 0) + 1);
   }
   for (const s of openSosDocs) areaCount.set(s.area ?? "Unknown", (areaCount.get(s.area ?? "Unknown") ?? 0) + 1);
+  const [donReceived, donPledged] = await Promise.all([
+    DonationModel.aggregate([{ $match: { status: "RECEIVED" } }, { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } }]),
+    DonationModel.aggregate([{ $match: { status: "PLEDGED" } }, { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } }]),
+  ]);
   const capacity = shelters.reduce((a, s) => a + s.capacity, 0);
   const occupied = shelters.reduce((a, s) => a + s.occupied, 0);
   const topPriorities = [...openIncidents.map((i) => ({ kind: "Incident", title: i.title, area: i.area, priorityScore: i.priorityScore, priorityLevel: i.priorityLevel as string, status: i.status as string })),
@@ -68,6 +73,7 @@ export async function buildSitrep(): Promise<Sitrep> {
     busiestAreas: [...areaCount.entries()].map(([area, openReports]) => ({ area, openReports })).sort((a, b) => b.openReports - a.openReports).slice(0, 5),
     shelters: { count: shelters.length, capacity, occupied, utilizationPercent: capacity ? round1((occupied / capacity) * 100) : 0, fullShelters: shelters.filter((s) => s.occupied >= s.capacity).map((s) => s.name) },
     activeAlertTitles: activeAlerts.slice(0, 5).map((a) => a.title),
+    donations: { receivedTotal: (donReceived[0] as { total?: number } | undefined)?.total ?? 0, receivedCount: (donReceived[0] as { count?: number } | undefined)?.count ?? 0, pledgedTotal: (donPledged[0] as { total?: number } | undefined)?.total ?? 0, pledgedCount: (donPledged[0] as { count?: number } | undefined)?.count ?? 0 },
     topPriorities,
   };
 }
@@ -95,6 +101,9 @@ export function renderSitrepText(r: Sitrep): string {
     `SHELTERS`,
     `${r.shelters.count} shelters · ${r.shelters.occupied}/${r.shelters.capacity} places occupied (${r.shelters.utilizationPercent}%)`,
     ...(r.shelters.fullShelters.length ? [`Full: ${r.shelters.fullShelters.join(", ")}`] : []),
+    ``,
+    `DONATIONS`,
+    `Verified received: ₹${r.donations.receivedTotal.toLocaleString("en-IN")} (${r.donations.receivedCount} donations) · Pledged awaiting verification: ₹${r.donations.pledgedTotal.toLocaleString("en-IN")} (${r.donations.pledgedCount})`,
     ``,
     `ACTIVE ALERTS`,
     ...(r.activeAlertTitles.length ? r.activeAlertTitles.map((t) => `- ${t}`) : ["None."]),
