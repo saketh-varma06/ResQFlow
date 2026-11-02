@@ -4,7 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { io as ioClient, type Socket } from "socket.io-client";
 import { app } from "./app";
-import { prisma } from "./database/prisma";
+import { clearDb, disconnectDb } from "./test/db";
+import { NotificationModel, UserModel } from "./models";
 import { initSocket } from "./socket";
 
 const api = () => request(app);
@@ -45,12 +46,12 @@ async function expectNoEvent(socket: Socket, event: string, ms = 700) {
 }
 
 beforeAll(async () => {
-  await prisma.$executeRawUnsafe(`TRUNCATE TABLE "AuditLog","Notification","IncidentStatusHistory","SOSStatusHistory","IncidentAssignment","SOSRequest","Incident","DisasterAlert","Shelter","ResponderProfile","User" RESTART IDENTITY CASCADE`);
+  await clearDb();
   const reg = await api().post("/api/auth/register").send({ name: "RT Citizen", email: "rt@test.local", password: "Citizen@12345", area: "North District" });
   citizenToken = reg.body.data.token; citizenId = reg.body.data.user.id;
   citizen2Token = (await api().post("/api/auth/register").send({ name: "RT Citizen Two", email: "rt2@test.local", password: "Citizen@12345", area: "South District" })).body.data.token;
   await api().post("/api/auth/register").send({ name: "RT Admin", email: "rtadmin@test.local", password: "Admin@12345", role: "ADMIN" });
-  await prisma.user.update({ where: { email: "rtadmin@test.local" }, data: { status: "ACTIVE" } });
+  await UserModel.updateOne({ email: "rtadmin@test.local" }, { $set: { status: "ACTIVE" } });
   adminToken = (await api().post("/api/auth/login").send({ email: "rtadmin@test.local", password: "Admin@12345" })).body.data.token;
   const unit = await api().post("/api/responders").set(B(adminToken)).send({ email: "rtunit@test.local", name: "RT Unit", password: "Responder@12345", unitName: "RT Rescue 1", unitType: "Rescue", base: "Base", members: 4 });
   profileId = unit.body.data.id;
@@ -63,7 +64,7 @@ beforeAll(async () => {
 afterAll(async () => {
   for (const s of sockets) s.disconnect();
   await new Promise<void>((r) => server.close(() => r()));
-  await prisma.$disconnect();
+  await disconnectDb();
 });
 
 describe("socket authentication", () => {
@@ -98,7 +99,7 @@ describe("role-restricted realtime events + notifications", () => {
     expect(ack.status).toBe(200);
     const notif = await notifPromise;
     expect(notif.title).toBe("SOS acknowledged");
-    const dbNotif = await prisma.notification.findFirst({ where: { userId: citizenId, title: "SOS acknowledged" } });
+    const dbNotif = await NotificationModel.findOne({ userId: citizenId, title: "SOS acknowledged" });
     expect(dbNotif).not.toBeNull();
     expect(dbNotif!.isRead).toBe(false);
     const read = await api().patch(`/api/notifications/${dbNotif!.id}/read`).set(B(citizenToken));

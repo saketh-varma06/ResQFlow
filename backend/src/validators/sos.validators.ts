@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SOSCategory, SOSStatus } from "@prisma/client";
+import { SOSCategory, SOSStatus } from "../types/enums";
 import { lat, lng, paginationQuery } from "./common";
 export const createSosSchema = z.object({
   need: z.string().trim().min(3).max(200),

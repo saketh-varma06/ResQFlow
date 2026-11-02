@@ -1,21 +1,22 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { app } from "./app";
-import { prisma } from "./database/prisma";
+import { clearDb, disconnectDb } from "./test/db";
+import { UserModel } from "./models";
 
 const api = () => request(app);
 const B = (t: string) => ({ Authorization: `Bearer ${t}` });
 let adminToken = "", citizenToken = "", shelterId = "";
 
 beforeAll(async () => {
-  await prisma.$executeRawUnsafe(`TRUNCATE TABLE "AuditLog","Shelter","User" RESTART IDENTITY CASCADE`);
+  await clearDb();
   const reg = await api().post("/api/auth/register").send({ name: "Shelter Citizen", email: "shc@test.local", password: "Citizen@12345" });
   citizenToken = reg.body.data.token;
   await api().post("/api/auth/register").send({ name: "Shelter Admin", email: "sha@test.local", password: "Admin@12345", role: "ADMIN" });
-  await prisma.user.update({ where: { email: "sha@test.local" }, data: { status: "ACTIVE" } });
+  await UserModel.updateOne({ email: "sha@test.local" }, { $set: { status: "ACTIVE" } });
   adminToken = (await api().post("/api/auth/login").send({ email: "sha@test.local", password: "Admin@12345" })).body.data.token;
 });
-afterAll(async () => { await prisma.$disconnect(); });
+afterAll(async () => { await disconnectDb(); });
 
 describe("shelter management validation", () => {
   it("creates a shelter with accessibility details and computed available capacity", async () => {

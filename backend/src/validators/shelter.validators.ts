@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ShelterStatus } from "@prisma/client";
+import { ShelterStatus } from "../types/enums";
 import { lat, lng, paginationQuery } from "./common";
 const capacityRule = (d: { capacity?: number; occupied?: number }) => d.capacity === undefined || d.occupied === undefined || d.occupied <= d.capacity;
 export const createShelterSchema = z.object({

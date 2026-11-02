@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IncidentStatus, IncidentType, Severity } from "@prisma/client";
+import { IncidentStatus, IncidentType, Severity } from "../types/enums";
 import { lat, lng, paginationQuery } from "./common";
 export const createIncidentSchema = z.object({
   title: z.string().trim().min(5).max(160),

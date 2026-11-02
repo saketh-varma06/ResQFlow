@@ -1,7 +1,8 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { app } from "./app";
-import { prisma } from "./database/prisma";
+import { clearDb, disconnectDb } from "./test/db";
+import { UserModel } from "./models";
 
 const api = () => request(app);
 let adminToken = "", citizenToken = "", responderToken = "";
@@ -9,7 +10,7 @@ let citizenId = "", responderProfileId = "", incidentId = "", sosId = "";
 const B = (t: string) => ({ Authorization: `Bearer ${t}` });
 
 beforeAll(async () => {
-  await prisma.$executeRawUnsafe(`TRUNCATE TABLE "AuditLog","Notification","IncidentStatusHistory","IncidentAssignment","SOSRequest","Incident","DisasterAlert","Shelter","ResponderProfile","User" RESTART IDENTITY CASCADE`);
+  await clearDb();
   // Citizen registers + logs in
   const reg = await api().post("/api/auth/register").send({ name: "Test Citizen", email: "citizen@test.local", password: "Citizen@12345", area: "North District" });
   expect(reg.status).toBe(201);
@@ -18,7 +19,7 @@ beforeAll(async () => {
   const adm = await api().post("/api/auth/register").send({ name: "Test Admin", email: "admin@test.local", password: "Admin@12345", role: "ADMIN" });
   expect(adm.status).toBe(201);
   expect(adm.body.data.token).toBeNull(); // pending approval — no token issued
-  await prisma.user.update({ where: { email: "admin@test.local" }, data: { status: "ACTIVE" } });
+  await UserModel.updateOne({ email: "admin@test.local" }, { $set: { status: "ACTIVE" } });
   const admLogin = await api().post("/api/auth/login").send({ email: "admin@test.local", password: "Admin@12345" });
   expect(admLogin.status).toBe(200);
   adminToken = admLogin.body.data.token;
@@ -30,7 +31,7 @@ beforeAll(async () => {
   expect(respLogin.status).toBe(200);
   responderToken = respLogin.body.data.token;
 });
-afterAll(async () => { await prisma.$disconnect(); });
+afterAll(async () => { await disconnectDb(); });
 
 describe("health", () => {
   it("reports ok with database up", async () => {

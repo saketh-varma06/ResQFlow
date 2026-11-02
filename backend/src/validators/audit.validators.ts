@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AuditResult } from "@prisma/client";
+import { AuditResult } from "../types/enums";
 import { paginationQuery } from "./common";
 export const listAuditQuery = paginationQuery.extend({
   result: z.nativeEnum(AuditResult).optional(),

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UserRole, UserStatus } from "@prisma/client";
+import { UserRole, UserStatus } from "../types/enums";
 import { paginationQuery } from "./common";
 export const listUsersQuery = paginationQuery.extend({
   role: z.nativeEnum(UserRole).optional(),

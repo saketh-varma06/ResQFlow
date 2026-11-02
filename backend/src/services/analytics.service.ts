@@ -1,4 +1,4 @@
-import { prisma } from "../database/prisma";
+import { UserModel, IncidentModel, SosRequestModel, ShelterModel, AlertModel, AssignmentModel, ResponderModel, StatusHistoryModel } from "../models";
 
 function dayKey(d: Date) { return d.toISOString().slice(0, 10); }
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -23,26 +23,36 @@ function avgMinutesToFirst(history: { recordId: string; toStatus: string; create
 export async function overview() {
   const now = Date.now();
   const since14 = new Date(now - 14 * 24 * 3600 * 1000);
-  const [usersByRole, incidentsTotal, incidentsActive, byStatus, bySeverity, byType, sosByStatus, shelters, alertsActive, assignments,
-    incidentRows, sosRows, incidentHistory, sosHistory, profiles, assignmentsByUnit, sosByUnit] = await Promise.all([
-    prisma.user.groupBy({ by: ["role"], _count: true }),
-    prisma.incident.count(),
-    prisma.incident.count({ where: { status: { notIn: ["RESOLVED", "CLOSED"] } } }),
-    prisma.incident.groupBy({ by: ["status"], _count: true }),
-    prisma.incident.groupBy({ by: ["severity"], _count: true }),
-    prisma.incident.groupBy({ by: ["type"], _count: true }),
-    prisma.sOSRequest.groupBy({ by: ["status"], _count: true }),
-    prisma.shelter.findMany({ select: { id: true, name: true, area: true, capacity: true, occupied: true, status: true } }),
-    prisma.disasterAlert.count({ where: { status: "ACTIVE" } }),
-    prisma.incidentAssignment.count(),
-    prisma.incident.findMany({ select: { id: true, createdAt: true } }),
-    prisma.sOSRequest.findMany({ select: { id: true, createdAt: true, status: true } }),
-    prisma.incidentStatusHistory.findMany({ select: { incidentId: true, toStatus: true, createdAt: true } }),
-    prisma.sOSStatusHistory.findMany({ select: { sosId: true, toStatus: true, createdAt: true } }),
-    prisma.responderProfile.findMany({ select: { id: true, unitName: true, unitType: true, readiness: true, members: true } }),
-    prisma.incidentAssignment.findMany({ select: { responderProfileId: true, status: true, incident: { select: { status: true } } } }),
-    prisma.sOSRequest.findMany({ where: { responderProfileId: { not: null } }, select: { responderProfileId: true, status: true } }),
+  const [usersByRole, incidentsTotal, incidentsActive, byStatus, bySeverity, byType, sosByStatus, shelterRows, alertsActive, assignments,
+    incidentRowsRaw, sosRowsRaw, incidentHistoryRaw, sosHistoryRaw, profileRows, assignmentRows, sosByUnit, incidentStatusRows] = await Promise.all([
+    UserModel.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
+    IncidentModel.countDocuments(),
+    IncidentModel.countDocuments({ status: { $nin: ["RESOLVED", "CLOSED"] } }),
+    IncidentModel.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+    IncidentModel.aggregate([{ $group: { _id: "$severity", count: { $sum: 1 } } }]),
+    IncidentModel.aggregate([{ $group: { _id: "$type", count: { $sum: 1 } } }]),
+    SosRequestModel.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+    ShelterModel.find().select("name area capacity occupied status").lean(),
+    AlertModel.countDocuments({ status: "ACTIVE" }),
+    AssignmentModel.countDocuments(),
+    IncidentModel.find().select("createdAt").lean(),
+    SosRequestModel.find().select("createdAt status").lean(),
+    StatusHistoryModel.find({ entityType: "INCIDENT" }).select("entityId toStatus createdAt").lean(),
+    StatusHistoryModel.find({ entityType: "SOS" }).select("entityId toStatus createdAt").lean(),
+    ResponderModel.find().select("unitName unitType readiness members").lean(),
+    AssignmentModel.find().select("responderProfileId status incidentId").lean(),
+    SosRequestModel.find({ responderProfileId: { $ne: null } }).select("responderProfileId status").lean(),
+    IncidentModel.find().select("status").lean(),
   ]);
+
+  const shelters = shelterRows.map((s) => ({ id: s._id, name: s.name, area: s.area, capacity: s.capacity, occupied: s.occupied, status: s.status }));
+  const incidentRows = incidentRowsRaw.map((r) => ({ id: r._id, createdAt: r.createdAt }));
+  const sosRows = sosRowsRaw.map((r) => ({ id: r._id, createdAt: r.createdAt, status: r.status }));
+  const incidentHistory = incidentHistoryRaw.map((h) => ({ incidentId: h.entityId, toStatus: h.toStatus, createdAt: h.createdAt }));
+  const sosHistory = sosHistoryRaw.map((h) => ({ sosId: h.entityId, toStatus: h.toStatus, createdAt: h.createdAt }));
+  const profiles = profileRows.map((p) => ({ id: p._id, unitName: p.unitName, unitType: p.unitType, readiness: p.readiness, members: p.members }));
+  const incidentStatusById = new Map<string, string>(incidentStatusRows.map((r) => [r._id, r.status as string] as [string, string]));
+  const assignmentsByUnit = assignmentRows.map((a) => ({ responderProfileId: a.responderProfileId, status: a.status, incidentId: a.incidentId, incident: { status: incidentStatusById.get(a.incidentId) as string } }));
 
   // Trends: last 14 days, real timestamps from records + status history
   const trends: { day: string; incidents: number; incidentsResolved: number; sos: number }[] = [];
@@ -80,17 +90,17 @@ export async function overview() {
   }).sort((a, b) => b.activeAssignments + b.activeSos - (a.activeAssignments + a.activeSos));
 
   const incResolutionMin = avgMinutesToFirst(incHist, incidentCreated, "RESOLVED");
-  const toMap = (rows: { _count: number }[], key: string) => Object.fromEntries(rows.map((r) => [(r as unknown as Record<string, unknown>)[key], r._count]));
+  const toMap = (rows: { _id: unknown; count: number }[]) => Object.fromEntries(rows.map((r) => [String(r._id), r.count]));
   return {
-    users: { total: usersByRole.reduce((a, r) => a + r._count, 0), byRole: toMap(usersByRole, "role") },
+    users: { total: usersByRole.reduce((a, r) => a + r.count, 0), byRole: toMap(usersByRole) },
     incidents: {
       total: incidentsTotal, active: incidentsActive,
-      byStatus: toMap(byStatus, "status"), bySeverity: toMap(bySeverity, "severity"), byType: toMap(byType, "type"),
+      byStatus: toMap(byStatus), bySeverity: toMap(bySeverity), byType: toMap(byType),
       reportedLast7Days: trends.slice(7).map((t) => ({ day: t.day, reported: t.incidents })),
       trends14Days: trends,
     },
     sos: {
-      total: sosByStatus.reduce((a, r) => a + r._count, 0), byStatus: toMap(sosByStatus, "status"),
+      total: sosByStatus.reduce((a, r) => a + r.count, 0), byStatus: toMap(sosByStatus),
       pending: pendingSosRows.length,
       oldestPendingMinutes: oldestPending ? Math.round((now - oldestPending) / 60000) : null,
     },

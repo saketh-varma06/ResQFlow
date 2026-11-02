@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AlertStatus, Severity } from "@prisma/client";
+import { AlertStatus, Severity } from "../types/enums";
 import { paginationQuery } from "./common";
 export const createAlertSchema = z.object({
   title: z.string().trim().min(8).max(200),

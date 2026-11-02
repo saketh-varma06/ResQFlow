@@ -1,4 +1,4 @@
-import type { PriorityLevel, Severity } from "@prisma/client";
+import type { PriorityLevel, Severity } from "../types/enums";
 
 /**
  * Explainable, rule-based priority scoring for emergency requests and incidents.

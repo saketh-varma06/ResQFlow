@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UserRole } from "@prisma/client";
+import { UserRole } from "../types/enums";
 export const registerSchema = z.object({
   name: z.string().trim().min(2).max(80),
   email: z.string().trim().toLowerCase().email(),

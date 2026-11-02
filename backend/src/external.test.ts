@@ -45,8 +45,8 @@ describe("external overview endpoint", () => {
   beforeAll(async () => {
     stubFetch();
     const { app } = await import("./app");
-    const { prisma } = await import("./database/prisma");
-    await prisma.$executeRawUnsafe(`TRUNCATE TABLE "User" RESTART IDENTITY CASCADE`);
+    const { clearDb } = await import("./test/db");
+    await clearDb();
     const reg = await request(app).post("/api/auth/register").send({ name: "Ext User", email: "ext@test.local", password: "Citizen@12345" });
     token = reg.body.data.token;
     void app;
@@ -103,9 +103,9 @@ describe("external geocode endpoint", () => {
   ] });
   beforeAll(async () => {
     const { app } = await import("./app");
-    const { prisma } = await import("./database/prisma");
+    const { clearDb } = await import("./test/db");
     const { resetExternalCache } = await import("./services/external.service");
-    await prisma.$executeRawUnsafe(`TRUNCATE TABLE "User" RESTART IDENTITY CASCADE`);
+    await clearDb();
     const reg = await request(app).post("/api/auth/register").send({ name: "Geo Tester", email: "geo@test.local", password: "Citizen@12345", area: "North District" });
     token = reg.body.data.token;
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {

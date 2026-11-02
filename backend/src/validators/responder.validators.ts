@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ResponderReadiness } from "@prisma/client";
+import { ResponderReadiness } from "../types/enums";
 import { paginationQuery } from "./common";
 export const createResponderSchema = z.object({
   userId: z.string().min(1).optional(),

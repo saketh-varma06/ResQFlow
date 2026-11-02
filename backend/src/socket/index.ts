@@ -1,7 +1,7 @@
 import type { Server as HttpServer } from "node:http";
 import { Server, type Socket } from "socket.io";
 import { env } from "../config/env";
-import { prisma } from "../database/prisma";
+import { UserModel } from "../models";
 import { verifyToken } from "../utils/security";
 import { parseCookies } from "../utils/session";
 import { setIO } from "../utils/realtime";
@@ -28,7 +28,7 @@ export function initSocket(httpServer: HttpServer) {
       const token = fromAuth ?? cookies["resqflow_session"] ?? fromQuery;
       if (!token) return next(new Error("Authentication required"));
       const payload = verifyToken(token);
-      const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: { id: true, role: true, status: true, tokenVersion: true } });
+      const user = await UserModel.findById(payload.sub).select({ role: 1, status: 1, tokenVersion: 1 });
       if (!user) return next(new Error("Authentication required"));
       if (payload.tv !== user.tokenVersion) return next(new Error("Session has been invalidated"));
       if (user.status !== "ACTIVE") return next(new Error("Account is not active"));

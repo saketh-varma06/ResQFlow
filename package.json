@@ -16,15 +16,11 @@
     "build:backend": "npm run build -w backend",
     "test": "npm run test -w backend && npm run test -w frontend",
     "lint": "npm run lint -w frontend",
-    "db:up": "docker compose up -d postgres",
-    "db:down": "docker compose down",
-    "db:logs": "docker compose logs -f postgres",
-    "db:generate": "npm run prisma:generate -w backend",
-    "db:migrate": "npm run prisma:migrate -w backend",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
     "db:seed": "npm run db:seed -w backend",
     "db:seed-admin": "npm run db:seed-admin -w backend",
+    "db:setup": "npm run db:setup -w backend",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

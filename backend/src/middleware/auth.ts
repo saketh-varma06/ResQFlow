@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
-import type { UserRole } from "@prisma/client";
-import { prisma } from "../database/prisma";
+import type { UserRole } from "../types/enums";
+import { UserModel } from "../models";
 import { ApiError } from "../utils/ApiError";
 import { verifyToken } from "../utils/security";
 import { SESSION_COOKIE, parseCookies } from "../utils/session";
@@ -18,7 +18,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     const found = extractToken(req);
     if (!found) throw ApiError.unauthorized("Not signed in");
     const payload = verifyToken(found.token);
-    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+    const user = await UserModel.findById(payload.sub);
     if (!user) throw ApiError.unauthorized("Account no longer exists");
     // Session invalidation: logout / password change bumps tokenVersion, killing every earlier token.
     if (payload.tv !== user.tokenVersion) throw ApiError.unauthorized("Session has been invalidated — sign in again");

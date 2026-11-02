@@ -2,7 +2,8 @@ import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import jwt from "jsonwebtoken";
 import { app } from "./app";
-import { prisma } from "./database/prisma";
+import { clearDb, disconnectDb } from "./test/db";
+import { UserModel } from "./models";
 
 const api = () => request(app);
 const B = (t: string) => ({ Authorization: `Bearer ${t}` });
@@ -10,11 +11,11 @@ let adminToken = "", citizenToken = "", respAToken = "", respBToken = "";
 let profileA = "", profileB = "", incidentId = "", citizenId = "";
 
 beforeAll(async () => {
-  await prisma.$executeRawUnsafe(`TRUNCATE TABLE "AuditLog","Notification","IncidentStatusHistory","IncidentAssignment","SOSRequest","Incident","DisasterAlert","Shelter","ResponderProfile","User" RESTART IDENTITY CASCADE`);
+  await clearDb();
   const reg = await api().post("/api/auth/register").send({ name: "Cookie Citizen", email: "cc@test.local", password: "Citizen@12345", area: "North District" });
   citizenToken = reg.body.data.token; citizenId = reg.body.data.user.id;
   await api().post("/api/auth/register").send({ name: "Boss", email: "boss@test.local", password: "Admin@12345", role: "ADMIN" });
-  await prisma.user.update({ where: { email: "boss@test.local" }, data: { status: "ACTIVE" } });
+  await UserModel.updateOne({ email: "boss@test.local" }, { $set: { status: "ACTIVE" } });
   adminToken = (await api().post("/api/auth/login").send({ email: "boss@test.local", password: "Admin@12345" })).body.data.token;
   const mk = async (email: string, unit: string) => {
     const r = await api().post("/api/responders").set(B(adminToken)).send({ email, name: unit, password: "Responder@12345", unitName: unit, unitType: "Rescue", base: "Base", members: 4 });
@@ -27,7 +28,7 @@ beforeAll(async () => {
   const inc = await api().post("/api/incidents").set(B(citizenToken)).send({ title: "Authz test incident", type: "FLOOD", severity: "HIGH", description: "Incident used to test responder authorization boundaries.", location: "Boundary Road", area: "North District" });
   incidentId = inc.body.data.id;
 });
-afterAll(async () => { await prisma.$disconnect(); });
+afterAll(async () => { await disconnectDb(); });
 
 describe("cookie session + CSRF", () => {
   it("login sets an httpOnly session cookie and a CSRF cookie; cookie alone authenticates reads", async () => {
@@ -62,7 +63,7 @@ describe("session invalidation + expiry", () => {
     citizenToken = relogin.body.data.token;
   });
   it("an expired token is rejected with 401", async () => {
-    const user = await prisma.user.findUnique({ where: { email: "cc@test.local" } });
+    const user = await UserModel.findOne({ email: "cc@test.local" });
     const expired = jwt.sign({ sub: user!.id, email: user!.email, role: user!.role, tv: user!.tokenVersion }, process.env.JWT_SECRET!, { expiresIn: "-10s" });
     expect((await api().get("/api/auth/me").set(B(expired))).status).toBe(401);
   });

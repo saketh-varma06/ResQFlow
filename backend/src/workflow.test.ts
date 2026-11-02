@@ -1,7 +1,8 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { app } from "./app";
-import { prisma } from "./database/prisma";
+import { clearDb, disconnectDb } from "./test/db";
+import { UserModel } from "./models";
 import { computePriority } from "./utils/priority";
 import { assertTransition } from "./utils/workflow";
 
@@ -10,17 +11,17 @@ const B = (t: string) => ({ Authorization: `Bearer ${t}` });
 let adminToken = "", citizenToken = "", responderToken = "", profileId = "";
 
 beforeAll(async () => {
-  await prisma.$executeRawUnsafe(`TRUNCATE TABLE "AuditLog","Notification","IncidentStatusHistory","SOSStatusHistory","IncidentAssignment","SOSRequest","Incident","DisasterAlert","Shelter","ResponderProfile","User" RESTART IDENTITY CASCADE`);
+  await clearDb();
   const reg = await api().post("/api/auth/register").send({ name: "Flow Citizen", email: "flow@test.local", password: "Citizen@12345", area: "North District" });
   citizenToken = reg.body.data.token;
   await api().post("/api/auth/register").send({ name: "Flow Admin", email: "flowadmin@test.local", password: "Admin@12345", role: "ADMIN" });
-  await prisma.user.update({ where: { email: "flowadmin@test.local" }, data: { status: "ACTIVE" } });
+  await UserModel.updateOne({ email: "flowadmin@test.local" }, { $set: { status: "ACTIVE" } });
   adminToken = (await api().post("/api/auth/login").send({ email: "flowadmin@test.local", password: "Admin@12345" })).body.data.token;
   const unit = await api().post("/api/responders").set(B(adminToken)).send({ email: "flowunit@test.local", name: "Flow Unit", password: "Responder@12345", unitName: "Flow Rescue 1", unitType: "Rescue", base: "Base", members: 5 });
   profileId = unit.body.data.id;
   responderToken = (await api().post("/api/auth/login").send({ email: "flowunit@test.local", password: "Responder@12345" })).body.data.token;
 });
-afterAll(async () => { await prisma.$disconnect(); });
+afterAll(async () => { await disconnectDb(); });
 
 describe("priority scoring (explainable rules)", () => {
   it("scores a severe, trapped, many-people incident as CRITICAL with reasons", () => {
