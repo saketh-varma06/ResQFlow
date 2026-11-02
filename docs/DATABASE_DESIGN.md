@@ -1,17 +1,27 @@
-# ResQFlow — Database Design (PostgreSQL today, MongoDB Atlas prepared)
+# ResQFlow — Database Design (MongoDB Atlas live since 2 Nov 2026; PostgreSQL design kept as history)
 
-> **Status (1 Nov 2026):** The running application uses **PostgreSQL via Prisma**
-> (`backend/prisma/schema.prisma`, `DATABASE_URL`). The MongoDB Atlas design in
-> Part 2 is **prepared, not connected**: no Atlas cluster or credentials exist
-> yet, no connection string has been created, and nothing in the running
-> backend imports the Mongoose layer in `database/mongodb/`. Atlas becomes
-> real only after the user provides a cluster, a database user, network
-> access, and a `MONGODB_URI` — see the migration plan in §2.10 and the
-> cutover steps in `database/mongodb/README.md`.
+> **Status (2 Nov 2026) — CUTOVER EXECUTED:** The running application uses
+> **MongoDB Atlas via Mongoose** (`backend/src/models/`, `backend/src/db/mongo.ts`,
+> `MONGODB_URI`). The backend was rewired from Prisma/PostgreSQL to Mongoose
+> with the HTTP API unchanged (verified: 57/57 backend tests on Atlas, a
+> 32-endpoint response-shape diff against the Postgres build with parity after
+> two serialiser fixes, 24/24 live E2E checks, restart-persistence confirmed —
+> see `docs/TEST_REPORT.md`). Part 1 below is the historical PostgreSQL design
+> (kept from git history; `backend/prisma/` was removed from the working
+> tree). Part 2 is the MongoDB design as executed, with two deviations from
+> the prepared draft, both forced by the API contract:
+> 1. **`location` is a string + scalar latitude/longitude** (the contract),
+>    not a GeoJSON point. The draft's GeoJSON `location`/`locationText` split
+>    (§2.6's 2dsphere design) was dropped; proximity uses bounding-box/range
+>    queries over the scalar fields. The standalone layer in
+>    `database/mongodb/` was aligned to the same shape.
+> 2. **Relation virtuals + a serialiser** (`backend/src/services/serialize.ts`)
+>    reproduce the Prisma-shaped JSON exactly (`_id`→`id`, null-filled
+>    scalars, populated-only relations, `incidentId`/`sosId` on history rows).
 
 ---
 
-# Part 1 — Current design: PostgreSQL + Prisma
+# Part 1 — Historical design: PostgreSQL + Prisma (pre-cutover)
 
 Source of truth: `backend/prisma/schema.prisma`. The schema defines
 **11 Prisma models**. (Part 2 maps them to **10 MongoDB collections** because
@@ -282,10 +292,11 @@ sorting aid, **not** a validated triage algorithm.
 
 ---
 
-# Part 2 — MongoDB Atlas design (prepared, not connected)
+# Part 2 — MongoDB Atlas design (EXECUTED 2 Nov 2026 — the live design)
 
 Target: MongoDB Atlas cluster, database `resqflow`, accessed with Mongoose 8
-via the prepared layer in `database/mongodb/`. The design goal is a
+via `backend/src/models/` (adapted from the prepared layer in `database/mongodb/`,
+which is kept aligned as a standalone reference + verification harness). The design goal is a
 **faithful port**: same identifiers, same enum values, same validation
 behaviour, so the application logic (workflow, priority, RBAC, realtime
 scoping) does not change at cutover — only the data-access layer does.
@@ -771,3 +782,30 @@ PostgreSQL from the audit log / a reverse export before the revert is
 declared complete. Only after a separately agreed stability period would
 anyone propose retiring the PostgreSQL instance — and that is a new
 decision, not part of this plan.
+
+---
+
+## 2.11 Execution record (2 Nov 2026)
+
+The cutover in §2.10 was executed the same day the Atlas cluster was verified:
+
+- **Baseline first:** 32 normalised endpoint responses captured from the
+  running PostgreSQL build; the post-cutover capture was diffed against them.
+  Two serialiser defects were found and fixed (StatusHistory entries leaking
+  `_id`/`__v`; a null `responderProfile` being dropped for unassigned SOS).
+  After the fixes, the same-record comparison is key-for-key identical.
+- **Tests:** all 57 backend tests pass against the Atlas `resqflow_test`
+  database with zero assertion changes; the harness connects via
+  `MONGODB_URI_TEST` (derived from `MONGODB_URI`) and clears collections with
+  `deleteMany` between files.
+- **Live gates:** 24/24 E2E checks and 5/5 socket-scoping checks passed
+  against the Mongo-backed server; records created in the E2E survived a
+  backend restart (Atlas persistence); `npm run verify` in
+  `database/mongodb/` passes 9/9 with the aligned models.
+- **Prisma removed** from the working tree (deps, `backend/prisma/`,
+  `src/database/`); it remains in git history at commit `1b711ff` and below.
+- **Known cosmetic difference:** list ordering can differ when `createdAt`
+  timestamps tie — MongoDB `Date` values have millisecond precision, so rows
+  seeded in the same millisecond may order differently than they did under
+  PostgreSQL's microsecond timestamps. Real user-created records have
+  distinct timestamps; no ordering guarantee existed in the API contract.

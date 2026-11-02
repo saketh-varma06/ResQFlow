@@ -7,7 +7,6 @@ import {
   type SosCategory,
   type SosStatus,
 } from "./enums";
-import { geoPointSchema, type GeoPoint } from "./geoPoint";
 
 /**
  * Collection: sosRequests — mirrors Prisma model `SOSRequest`.
@@ -28,11 +27,10 @@ export interface SosRequest {
   priorityScore: number;
   priorityLevel: PriorityLevel;
   priorityReasons: string[];
-  locationText: string;
+  location: string;
   area?: string;
   latitude?: number;
   longitude?: number;
-  location?: GeoPoint;
   details?: string;
   phone?: string;
   status: SosStatus;
@@ -58,11 +56,10 @@ const sosRequestSchema = new Schema<SosRequest>(
       default: "LOW",
     },
     priorityReasons: { type: [String], default: [] },
-    locationText: { type: String, required: true },
+    location: { type: String, required: true },
     area: { type: String },
     latitude: { type: Number, min: -90, max: 90 },
     longitude: { type: Number, min: -180, max: 180 },
-    location: { type: geoPointSchema },
     details: { type: String },
     phone: { type: String, trim: true },
     status: { type: String, enum: SOS_STATUSES, default: "SUBMITTED" },
@@ -82,7 +79,6 @@ sosRequestSchema.index({ citizenId: 1, createdAt: -1 });
 sosRequestSchema.index({ createdAt: -1 });
 sosRequestSchema.index({ priorityLevel: 1 });
 sosRequestSchema.index({ responderProfileId: 1 });
-sosRequestSchema.index({ location: "2dsphere" });
 
 export const SosRequestModel = model<SosRequest>(
   "SosRequest",

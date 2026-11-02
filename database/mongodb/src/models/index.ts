@@ -1,5 +1,4 @@
 export * from "./enums";
-export * from "./geoPoint";
 export { UserModel, type User } from "./User";
 export { ResponderModel, type Responder } from "./Responder";
 export { IncidentModel, type Incident } from "./Incident";

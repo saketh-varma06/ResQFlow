@@ -7,13 +7,20 @@
  * <db_password> placeholder — it never invents credentials.
  *
  * What it proves (each printed PASS/FAIL is a real round-trip):
- *  1. Connection + ping, and every model's indexes build (incl. 2dsphere).
+ *  1. Connection + ping, and every model's indexes build.
  *  2. A user document stores a bcrypt password hash, never plaintext.
  *  3. A wrong-password connection is rejected by Atlas (auth works).
- *  4. An SOS document with a GeoJSON location is created and read back.
+ *  4. An SOS document (string location + scalar latitude/longitude, the API
+ *     contract shape) is created and read back.
  *  5. Status-history rows for that SOS are preserved.
- *  6. A $near geospatial query finds a shelter at the SOS location and does
- *     NOT find it from a far-away point.
+ *  6. A latitude/longitude proximity query finds a shelter near the SOS and
+ *     does NOT find it from a far-away point.
+ *
+ * Cutover note: the preparation draft of this layer stored GeoJSON points in
+ * `location` with 2dsphere indexes; the live API contract uses a string
+ * `location` plus scalar coordinates, so the layer (and checks 4/6) were
+ * aligned to the contract during the MongoDB cutover. Check count and
+ * semantics are unchanged.
  * Test documents are removed at the end; counts are printed before cleanup.
  */
 import { readFileSync } from "node:fs";
@@ -89,9 +96,10 @@ async function main(): Promise<void> {
     ];
     for (const m of models) await m.syncIndexes();
     const shelterIndexes = await ShelterModel.collection.indexes();
+    const shelterKeys = shelterIndexes.map((i) => JSON.stringify(i.key));
     check(
-      "indexes built (incl. shelter 2dsphere)",
-      shelterIndexes.some((i) => JSON.stringify(i.key).includes("2dsphere")),
+      "indexes built (shelter area/status present)",
+      shelterKeys.some((k) => k === '{"area":1}') && shelterKeys.some((k) => k === '{"status":1}'),
       `${shelterIndexes.length} shelter indexes`,
     );
 
@@ -116,7 +124,7 @@ async function main(): Promise<void> {
       !!raw && (await bcrypt.compare(plainPassword, raw.passwordHash)),
     );
 
-    // 4 — SOS with GeoJSON location (Delhi)
+    // 4 — SOS with the contract location shape (Delhi)
     const sos = await SosRequestModel.create({
       citizenId: userId,
       need: "Atlas verification SOS",
@@ -127,15 +135,16 @@ async function main(): Promise<void> {
       priorityScore: 42,
       priorityLevel: "MEDIUM",
       priorityReasons: ["verification"],
-      locationText: "Connaught Place, New Delhi",
-      location: { type: "Point", coordinates: [77.209, 28.6315] },
+      location: "Connaught Place, New Delhi",
+      latitude: 28.6315,
+      longitude: 77.209,
       status: "SUBMITTED",
     });
     sosId = sos._id;
     const sosBack = await SosRequestModel.findById(sosId).lean();
     check(
-      "SOS created + read back with GeoJSON location",
-      !!sosBack && sosBack.location?.coordinates?.[0] === 77.209,
+      "SOS created + read back with string location + coordinates",
+      !!sosBack && sosBack.location === "Connaught Place, New Delhi" && sosBack.longitude === 77.209,
       `sos ${sosId}`,
     );
 
@@ -147,7 +156,9 @@ async function main(): Promise<void> {
     const historyCount = await StatusHistoryModel.countDocuments({ entityType: "SOS", entityId: sosId });
     check("status history rows preserved", historyCount === 2, `${historyCount} rows`);
 
-    // 6 — geospatial: shelter near the SOS is found; from Chennai it is not
+    // 6 — proximity: shelter near the SOS is found; from Chennai it is not.
+    // The app stores scalar latitude/longitude, so proximity is a ±0.045°
+    // bounding box (≈5 km) over those fields.
     const shelter = await ShelterModel.create({
       name: `Atlas Verify Shelter ${run}`,
       address: "Connaught Place, New Delhi",
@@ -156,17 +167,16 @@ async function main(): Promise<void> {
       occupied: 10,
       facilities: ["Water", "Food"],
       status: "OPEN",
-      location: { type: "Point", coordinates: [77.2095, 28.632] },
+      latitude: 28.632,
+      longitude: 77.2095,
     });
     shelterId = shelter._id;
-    const near = await ShelterModel.find({
-      location: { $near: { $geometry: { type: "Point", coordinates: [77.209, 28.6315] }, $maxDistance: 5000 } },
-    }).lean();
-    check("$near finds the shelter within 5 km", near.some((s) => s._id === shelterId), `${near.length} shelter(s) near Delhi point`);
-    const far = await ShelterModel.find({
-      location: { $near: { $geometry: { type: "Point", coordinates: [80.2707, 13.0827] }, $maxDistance: 5000 } },
-    }).lean();
-    check("$near from Chennai (far point) excludes it", !far.some((s) => s._id === shelterId));
+    const nearBox = { latitude: { $gte: 28.6315 - 0.045, $lte: 28.6315 + 0.045 }, longitude: { $gte: 77.209 - 0.045, $lte: 77.209 + 0.045 } };
+    const near = await ShelterModel.find(nearBox).lean();
+    check("proximity box finds the shelter near Delhi", near.some((s) => s._id === shelterId), `${near.length} shelter(s) near Delhi point`);
+    const farBox = { latitude: { $gte: 13.0827 - 0.045, $lte: 13.0827 + 0.045 }, longitude: { $gte: 80.2707 - 0.045, $lte: 80.2707 + 0.045 } };
+    const far = await ShelterModel.find(farBox).lean();
+    check("proximity box from Chennai (far point) excludes it", !far.some((s) => s._id === shelterId));
 
     // 3 — wrong password must be rejected
     const wrongUri = uri.replace(/:([^:@/]+)@/, ":definitely-wrong-password@");

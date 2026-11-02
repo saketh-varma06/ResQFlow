@@ -1,6 +1,5 @@
 import { Schema, model, Types } from "mongoose";
 import { SHELTER_STATUSES, type ShelterStatus } from "./enums";
-import { geoPointSchema, type GeoPoint } from "./geoPoint";
 
 /**
  * Collection: shelters — mirrors Prisma model `Shelter`.
@@ -24,7 +23,6 @@ export interface Shelter {
   contact?: string;
   latitude?: number;
   longitude?: number;
-  location?: GeoPoint;
   status: ShelterStatus;
   /** Reference to users._id, null when the creator was removed. */
   createdById?: string | null;
@@ -45,7 +43,6 @@ const shelterSchema = new Schema<Shelter>(
     contact: { type: String },
     latitude: { type: Number, min: -90, max: 90 },
     longitude: { type: Number, min: -180, max: 180 },
-    location: { type: geoPointSchema },
     status: { type: String, enum: SHELTER_STATUSES, default: "OPEN" },
     createdById: { type: String, ref: "User", default: null },
   },
@@ -60,7 +57,6 @@ shelterSchema.path("occupied").validate(function (value: number) {
 shelterSchema.index({ area: 1 });
 shelterSchema.index({ status: 1 });
 shelterSchema.index({ status: 1, area: 1 });
-shelterSchema.index({ location: "2dsphere" });
 
 export const ShelterModel = model<Shelter>(
   "Shelter",

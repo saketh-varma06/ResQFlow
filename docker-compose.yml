@@ -1,23 +1,8 @@
+# ResQFlow runs on MongoDB Atlas (cloud) — no database container is needed.
+# The backend reads MONGODB_URI from the environment / root .env file.
+# (The pre-cutover PostgreSQL service was removed in the MongoDB cutover;
+# it remains in git history.)
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: resqflow-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-resqflow}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-resqflow_dev_password}
-      POSTGRES_DB: ${POSTGRES_DB:-resqflow}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - resqflow_postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resqflow} -d ${POSTGRES_DB:-resqflow}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   backend:
     build:
       context: .
@@ -27,14 +12,11 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-resqflow}:${POSTGRES_PASSWORD:-resqflow_dev_password}@postgres:5432/${POSTGRES_DB:-resqflow}?schema=public
+      MONGODB_URI: ${MONGODB_URI:?Set MONGODB_URI to your MongoDB Atlas connection string}
       CORS_ORIGIN: http://localhost:5173
       JWT_SECRET: ${JWT_SECRET:-change_me_to_a_long_random_local_secret}
     ports:
       - "4000:4000"
-    depends_on:
-      postgres:
-        condition: service_healthy
     profiles: ["full"]
 
   frontend:
@@ -48,7 +30,3 @@ services:
     depends_on:
       - backend
     profiles: ["full"]
-
-volumes:
-  resqflow_postgres_data:
-    name: resqflow_postgres_data

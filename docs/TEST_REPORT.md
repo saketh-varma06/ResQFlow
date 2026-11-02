@@ -235,3 +235,48 @@ PASSED** (real round-trips; test documents were deleted by the script afterwards
 Scope note: this verifies the prepared Mongoose layer against Atlas. The running
 application still uses PostgreSQL; switching the app runtime to Atlas is the
 separate cutover described in `docs/DATABASE_DESIGN.md`.
+
+## MongoDB Atlas cutover verification — 2 Nov 2026
+
+The backend was rewired from Prisma/PostgreSQL to Mongoose/MongoDB Atlas with
+the HTTP API contract frozen. All gates were executed against the real Atlas
+cluster (M0, Mumbai) — database `resqflow` for live checks, `resqflow_test`
+for the test suite.
+
+| Gate | Result |
+|---|---|
+| Root build (backend tsc + frontend Vite) | **0 errors** |
+| Backend test suite on Atlas (57 tests, 6 files, zero assertion changes) | **57/57 PASS** (~285 s on the free tier) |
+| Frontend test | **1/1 PASS** |
+| Lint | **0 errors** (10 pre-existing warnings) |
+| Response-shape parity vs the PostgreSQL build (32 normalised endpoint captures diffed) | **Parity** after 2 serialiser fixes (see below) |
+| Live E2E on the Mongo-backed server (register→login, wrong-password 401, SOS create→skip-400→ack→assign→citizen history `[SUBMITTED, ACKNOWLEDGED, ASSIGNED]`, incident create→assign→accept→IN_PROGRESS→note→RESOLVED→citizen tracking, shelter capacity 400 case, analytics keys, 401/403 matrix, health `database: "up"`) | **24/24 PASS** |
+| Socket smoke (anonymous rejected, cookie session connects, responder receives `incident:created`/`incident:updated`, unrelated citizen does NOT receive `incident:updated`) | **5/5 PASS** |
+| Restart persistence (backend killed + restarted; E2E-created SOS `ASSIGNED` with 3 history rows and incident `RESOLVED` with 5 history rows re-fetched intact) | **PASS** |
+| `npm run verify` in `database/mongodb/` | **9/9 PASS** (after alignment, see below) |
+| Prisma in the working tree | **Zero imports** (grep-verified); `backend/prisma/` and `src/database/` deleted; lockfile has no `@prisma` entries |
+
+**Shape-parity fixes (found by the baseline diff, fixed in
+`backend/src/services/serialize.ts`):** (1) StatusHistory entries in detail
+responses leaked Mongo's `_id`/`__v` — the entity-mapping branch now applies
+the same key normalisation as every other object. (2) An unassigned SOS lost
+its `responderProfile: null` key — Mongoose does not register population for
+a null foreign key, so the serialiser now emits `null` for an included
+just-one relation whose foreign key is null, matching Prisma.
+
+**Standalone-layer alignment (gate: verify):** the prepared layer in
+`database/mongodb/` originally stored GeoJSON points in a `location` field
+with 2dsphere indexes, which collides with the API contract's string
+`location` + scalar coordinates on the shared collections (its index build
+failed on real app data). The layer was aligned to the contract shape
+(`location` string, scalar lat/lng, no 2dsphere); `verify.ts` keeps **9
+checks with the same semantics** — the SOS round-trip now asserts the string
+location + coordinates, and the proximity checks use a ±0.045° (≈5 km)
+latitude/longitude bounding box instead of `$near`. All 9 pass; the Delhi
+proximity check also found the 4 real seeded shelters.
+
+**Cosmetic difference noted:** list ordering may differ when `createdAt`
+values tie (MongoDB dates have millisecond precision; seeded rows can share
+a millisecond). No API ordering guarantee is affected for real data.
+
+**Frontend changes for the cutover: none.**

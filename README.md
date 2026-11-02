@@ -43,8 +43,8 @@ validated status workflow.
 | Layer | Stack |
 |---|---|
 | Frontend | React 19, TypeScript, Vite 8, Tailwind CSS 3, shadcn/ui (Radix), React Router, Recharts, Leaflet, socket.io-client, vite-plugin-pwa |
-| Backend | Node.js, Express 5, TypeScript, Prisma 6, Socket.IO, Zod, JWT + bcrypt, Helmet, rate limiting |
-| Database | PostgreSQL 16 (Prisma schema: 11 models, 4 migrations) |
+| Backend | Node.js, Express 5, TypeScript, Mongoose 8, Socket.IO, Zod, JWT + bcryptjs, Helmet, rate limiting |
+| Database | MongoDB Atlas (MongoDB 8.0) via Mongoose — 10 collections (see `docs/DATABASE_DESIGN.md`) |
 | Tests | Vitest + supertest (backend 57 tests incl. realtime socket tests), Vitest (frontend) |
 | API docs | OpenAPI 3.0.3 at `GET /api/docs` (39 paths) |
 
@@ -55,7 +55,7 @@ frontend (React SPA, :5173 dev / :4173 preview)
   │  REST /api (Vite proxy → backend, cookie session + CSRF)
   │  Socket.IO (direct to backend, session cookie, role/user rooms)
 backend (Express + Socket.IO, :4000)
-  ├── routes → controllers → services → Prisma → PostgreSQL 16
+  ├── routes → controllers → services → Mongoose → MongoDB Atlas
   ├── auth: httpOnly cookie JWT + tokenVersion invalidation, RBAC guards
   ├── realtime: authenticated sockets, scoped emits, DB notifications
   └── external.service: Open-Meteo / USGS / GDACS (cache + provenance)
@@ -66,21 +66,22 @@ More detail: `docs/ARCHITECTURE.md`, `docs/PROJECT_AUDIT.md`,
 
 ## Database setup
 
-**Option A — Docker (recommended on your own machine):**
+The application runs on **MongoDB Atlas** (a free M0 cluster is enough).
+Create a cluster + database user in Atlas, allow your IP (or `0.0.0.0/0` for
+hosted deployments) under Network Access, and put the connection string in
+`backend/.env` as `MONGODB_URI` (see `backend/.env.example` — use the
+`mongodb+srv://` form on normal networks). Then:
+
 ```bash
-docker compose up -d postgres        # PostgreSQL 16 on :5432
+npm run db:setup -w backend          # connect + sync indexes (10 collections)
+npm run db:seed -w backend           # demo data + demo accounts (local only)
 ```
 
-**Option B — any local PostgreSQL 16:** create a user `resqflow` and databases
-`resqflow` and `resqflow_test`, then point `DATABASE_URL` / `TEST_DATABASE_URL`
-at them (see `.env.example`).
-
-Then:
-```bash
-npm run db:generate                  # Prisma client
-npm run db:migrate                   # apply migrations (dev)
-npm run db:seed                      # demo data + demo accounts (local only)
-```
+Tests use a separate `resqflow_test` database on the same cluster, derived
+automatically from `MONGODB_URI` (override with `MONGODB_URI_TEST`).
+No local database server or Docker is needed for the database.
+(The pre-cutover PostgreSQL/Prisma stack remains in git history and in
+`docs/DATABASE_DESIGN.md` as the historical fallback.)
 
 ## Environment variables
 
@@ -89,7 +90,7 @@ Placeholders only — generate your own `JWT_SECRET`. Key variables:
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL`, `TEST_DATABASE_URL` | PostgreSQL connection strings |
+| `MONGODB_URI` | MongoDB Atlas connection string (database `resqflow`); `MONGODB_URI_TEST` optionally overrides the test database |
 | `JWT_SECRET`, `JWT_EXPIRES_IN` | session signing |
 | `PORT` | backend port (4000) |
 | `CORS_ORIGIN` | **comma-separated** browser origin allowlist, e.g. `http://localhost:5173,http://localhost:4173` — the socket connects cross-origin, so every frontend origin must be listed |
@@ -101,7 +102,7 @@ No third-party API keys are required by any integration.
 
 ```bash
 npm install                          # all workspaces
-# start PostgreSQL (Option A or B above), then migrate + seed (above)
+# set MONGODB_URI in backend/.env, then db:setup + db:seed (above)
 npm run dev                          # backend :4000 + frontend :5173 (dev servers)
 ```
 or run the production build:
@@ -150,14 +151,15 @@ are Zod-validated and role-guarded. External integrations are documented in
 
 - **Containers:** `docker compose --profile full up -d` builds the backend and
   frontend images (`docker/backend.Dockerfile`, `docker/frontend.Dockerfile`
-  with nginx) plus PostgreSQL. Set real secrets in `.env` first; set
-  `CORS_ORIGIN` to your public frontend origin(s).
-- **Split hosting (e.g. PaaS + managed Postgres):** deploy `backend/` with
-  `DATABASE_URL` pointing at managed PostgreSQL, run `npx prisma migrate deploy`
-  on release, serve `frontend/dist` from any static host, and set `VITE_API_URL`
-  to the backend URL at build time. **No accounts or credentials are bundled** —
-  any hosting/database account must be created by you; nothing in this repo
-  deploys itself.
+  with nginx). The database is MongoDB Atlas (cloud) — set `MONGODB_URI` and a
+  real `JWT_SECRET` in `.env` first, and `CORS_ORIGIN` to your public frontend
+  origin(s).
+- **Split hosting (e.g. PaaS + Atlas):** deploy `backend/` with `MONGODB_URI`
+  pointing at your Atlas cluster (use the `mongodb+srv://` form), run
+  `npm run db:setup -w backend` once to sync indexes, serve `frontend/dist`
+  from any static host, and set `VITE_API_URL` to the backend URL at build
+  time. **No accounts or credentials are bundled** — any hosting/database
+  account must be created by you; nothing in this repo deploys itself.
 - This project has **not** been deployed to any public URL.
 
 ## Security considerations
@@ -168,7 +170,7 @@ are Zod-validated and role-guarded. External integrations are documented in
   design (no ambient cookie authority).
 - Public self-registration can never grant RESPONDER/ADMIN directly — such accounts
   are created PENDING until an admin activates them.
-- All inputs are Zod-validated; Prisma parameterises queries; responses strip
+- All inputs are Zod-validated; Mongoose casts and parameterises queries; responses strip
   password hashes; rate limits on auth and API; Helmet headers; CORS allowlist.
 - SOS/incident locations are visible only to the owner, responders and admins
   (citizens see only their own SOS pins); audit logs record security-relevant actions.
@@ -180,7 +182,8 @@ are Zod-validated and role-guarded. External integrations are documented in
 - External earthquake coverage is the India-centric region (lat 5–40, lon 65–100);
   weather defaults to Delhi unless coordinates are supplied.
 - Priority scoring is an explainable rule-based aid, **not** validated triage.
-- In the original build sandbox, Docker was unavailable and PostgreSQL ran as a
-  user-space instance; on a normal machine use Docker Compose as documented.
-  Sandbox-specific helpers live in `scripts/` (`pg-restore.sh`, `pg-local.sh`) and
-  are not needed elsewhere.
+- The database was migrated from PostgreSQL/Prisma to MongoDB Atlas/Mongoose
+  on 2 Nov 2026 with the HTTP API unchanged (see `docs/DATABASE_DESIGN.md` and
+  `docs/TEST_REPORT.md`). Sandbox-specific PostgreSQL helpers in `scripts/`
+  (`pg-restore.sh`, `pg-local.sh`) are historical artefacts of the old stack
+  and are not used by the application.

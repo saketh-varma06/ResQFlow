@@ -9,14 +9,14 @@ import {
   type PriorityLevel,
   type Severity,
 } from "./enums";
-import { geoPointSchema, type GeoPoint } from "./geoPoint";
 
 /**
- * Collection: incidents — mirrors Prisma model `Incident`.
- * Location is stored BOTH as the scalar latitude/longitude pair (parity with
- * PostgreSQL, used by existing serialisers) and as a GeoJSON Point
- * `location` for 2dsphere queries. The human-readable place string
- * stays in `locationText` (named `location` in PostgreSQL).
+ * Collection: incidents — mirrors the backend model (backend/src/models).
+ * `location` is the human-readable place string (the API contract);
+ * coordinates live in the scalar latitude/longitude pair. (An earlier
+ * preparation draft stored a GeoJSON point in `location` and the string in
+ * `locationText`; that collided with the API contract on the shared
+ * collection and was aligned during the cutover — see docs/TEST_REPORT.md.)
  */
 export interface Incident {
   _id: string;
@@ -25,11 +25,10 @@ export interface Incident {
   severity: Severity;
   status: IncidentStatus;
   description: string;
-  locationText: string;
+  location: string;
   area: string;
   latitude?: number;
   longitude?: number;
-  location?: GeoPoint;
   peopleAffected: number;
   injuriesReported: number;
   trapped: boolean;
@@ -55,11 +54,10 @@ const incidentSchema = new Schema<Incident>(
       default: "SUBMITTED",
     },
     description: { type: String, required: true },
-    locationText: { type: String, required: true },
+    location: { type: String, required: true },
     area: { type: String, required: true },
     latitude: { type: Number, min: -90, max: 90 },
     longitude: { type: Number, min: -180, max: 180 },
-    location: { type: geoPointSchema },
     peopleAffected: { type: Number, default: 0, min: 0 },
     injuriesReported: { type: Number, default: 0, min: 0 },
     trapped: { type: Boolean, default: false },
@@ -84,7 +82,6 @@ incidentSchema.index({ reporterId: 1 });
 incidentSchema.index({ createdAt: -1 });
 incidentSchema.index({ priorityLevel: 1 });
 incidentSchema.index({ priorityLevel: 1, priorityScore: -1, createdAt: 1 });
-incidentSchema.index({ location: "2dsphere" });
 
 export const IncidentModel = model<Incident>(
   "Incident",
