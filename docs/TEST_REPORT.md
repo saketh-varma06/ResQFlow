@@ -280,3 +280,36 @@ values tie (MongoDB dates have millisecond precision; seeded rows can share
 a millisecond). No API ordering guarantee is affected for real data.
 
 **Frontend changes for the cutover: none.**
+
+---
+
+## Advancement programme — Stages A–G (2 Nov 2026)
+
+Feature research first (Sahana Eden, SAMBRO/CAP, Ushahidi, HOT Tasking Manager,
+CrisisCleanup, InaSAFE, SACHET/NDMA, ReliefWeb), then seven stages built onto the
+existing codebase, each gated on build + new tests + live E2E + commit.
+Full narrative: `docs/ADVANCEMENT_REPORT.md`.
+
+**Full backend suite (final gate, per-file runs against `resqflow_test` on Atlas): 96/96**
+
+| File | Tests | | File | Tests |
+|------|-------|-|------|-------|
+| api.test.ts | 21 | | verification.test.ts (A) | 5 |
+| authz.test.ts | 9 | | capalerts.test.ts (B) | 7 |
+| workflow.test.ts | 7 | | dispatch.test.ts (C) | 4 |
+| shelters.test.ts | 5 | | relief.test.ts (D) | 6 |
+| external.test.ts | 8 | | fieldkit.test.ts (E) | 6 |
+| realtime.test.ts | 7 | | sitrep.test.ts (F) | 6 |
+| | | | missingpersons.test.ts (G) | 5 |
+
+Frontend: 1/1. Root build: 0 TypeScript errors. Lint: 0 errors (11 warnings).
+Per-stage live E2E on the Atlas dev database: A 10/10, B 8/8, C 6/6 (real OSRM
+road times), D 6/6, E 4/4, F 5/5 (EONET + GloFAS live), G 4/4.
+OpenAPI: 78 paths (was 39 before the programme).
+
+Notes: the first final-gate full-suite attempt was killed by a sandbox VM
+restart 55 minutes in before printing results; the suite was re-run per-file
+with results logged incrementally (all green above). Stage E's live run caught
+a real defect the fresh test DB could not: a sparse compound unique index on
+`clientRequestId` fails to build over existing documents — replaced with a
+unique partial index and re-verified live. No Grok API key was required.
