@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import MapView from "@/components/MapView";
+import { ShelterNeedsPanel } from "@/components/ShelterNeedsPanel";
+import { Button } from "@/components/ui/button";
 import { api, type ListEnvelope } from "@/lib/api";
 import { fmtDate, type ApiShelter } from "@/lib/apiTypes";
 import { useApi } from "@/hooks/useApi";
@@ -15,6 +17,7 @@ export default function SheltersPage() {
   const shelters = useApi(() => api<ListEnvelope<ApiShelter>>("/api/shelters?limit=100"));
   const [search, setSearch] = useState("");
   const [onlySpace, setOnlySpace] = useState(false);
+  const [needsOpen, setNeedsOpen] = useState<string | null>(null);
   const rows = useMemo(() => (shelters.data?.data ?? []).filter((s) =>
     (!onlySpace || s.occupied < s.capacity) &&
     (search.trim() === "" || `${s.name} ${s.address} ${s.area}`.toLowerCase().includes(search.toLowerCase()))), [shelters.data, search, onlySpace]);
@@ -43,6 +46,8 @@ export default function SheltersPage() {
                   {s.accessibility && <p className="mt-2 text-sm text-muted-foreground"><strong className="text-foreground">Accessibility:</strong> {s.accessibility}</p>}
                   <p className="mt-1 text-xs text-muted-foreground">Last updated {fmtDate(s.updatedAt)}</p>
                   {s.facilities.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{s.facilities.map((f) => <span key={f} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{f}</span>)}</div>}
+                  <Button size="sm" variant="outline" className="mt-3" aria-expanded={needsOpen === s.id} onClick={() => setNeedsOpen(needsOpen === s.id ? null : s.id)}>{needsOpen === s.id ? "Hide relief needs" : "Relief needs & pledging"}</Button>
+                  {needsOpen === s.id && <div className="mt-3 border-t pt-3"><ShelterNeedsPanel shelterId={s.id} staff={false} /></div>}
                 </CardContent></Card>);
             })}
           </div>

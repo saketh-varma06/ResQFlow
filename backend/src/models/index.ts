@@ -11,6 +11,8 @@ export { StatusHistoryModel, type StatusHistory, type StatusHistoryEntityType } 
 export { AuditLogModel, type AuditLog } from "./AuditLog";
 export { AlertSubscriptionModel, type AlertSubscription } from "./AlertSubscription";
 export { PushSubscriptionModel, type PushSubscription } from "./PushSubscription";
+export { ShelterNeedModel, type ShelterNeed } from "./ShelterNeed";
+export { PledgeModel, type Pledge } from "./Pledge";
 
 import { UserModel } from "./User";
 import { ResponderModel } from "./Responder";
@@ -24,6 +26,8 @@ import { StatusHistoryModel } from "./StatusHistory";
 import { AuditLogModel } from "./AuditLog";
 import { AlertSubscriptionModel } from "./AlertSubscription";
 import { PushSubscriptionModel } from "./PushSubscription";
+import { ShelterNeedModel } from "./ShelterNeed";
+import { PledgeModel } from "./Pledge";
 
 /** All models, for index sync and test cleanup. */
 export const ALL_MODELS = [
@@ -39,4 +43,6 @@ export const ALL_MODELS = [
   AuditLogModel,
   AlertSubscriptionModel,
   PushSubscriptionModel,
+  ShelterNeedModel,
+  PledgeModel,
 ] as const;

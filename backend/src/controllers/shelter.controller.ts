@@ -11,3 +11,14 @@ export const getOne = asyncHandler(async (req: Request, res: Response) => { res.
 export const create = asyncHandler(async (req: Request, res: Response) => { res.status(201).json({ data: await svc.createShelter(req.user!, body<z.infer<typeof createShelterSchema>>(req), req.ip) }); });
 export const update = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.updateShelter(req.user!, params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof updateShelterSchema>>(req), req.ip) }); });
 export const remove = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.deleteShelter(req.user!, params<z.infer<typeof idParam>>(req).id, req.ip) }); });
+import * as nsvc from "../services/shelter-needs.service";
+import type { createNeedSchema as NeedSchema, createPledgeSchema as PledgeSchema, minimumNeedsQuery as MinNeedsQuery, updateNeedSchema as UpdNeedSchema, updatePledgeSchema as UpdPledgeSchema } from "../validators/shelter.validators";
+import { needIdParam as NeedIdParamT } from "../validators/shelter.validators";
+type IdParamT = typeof idParam;
+export const listNeeds = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await nsvc.listNeeds(req.user!, params<z.infer<IdParamT>>(req).id) }); });
+export const createNeed = asyncHandler(async (req: Request, res: Response) => { res.status(201).json({ data: await nsvc.createNeed(req.user!, params<z.infer<IdParamT>>(req).id, body<z.infer<typeof NeedSchema>>(req), req.ip) }); });
+export const updateNeed = asyncHandler(async (req: Request, res: Response) => { const p = params<z.infer<typeof NeedIdParamT>>(req); res.json({ data: await nsvc.updateNeed(req.user!, p.id, p.needId, body<z.infer<typeof UpdNeedSchema>>(req), req.ip) }); });
+export const deleteNeed = asyncHandler(async (req: Request, res: Response) => { const p = params<z.infer<typeof NeedIdParamT>>(req); res.json({ data: await nsvc.deleteNeed(req.user!, p.id, p.needId, req.ip) }); });
+export const createPledge = asyncHandler(async (req: Request, res: Response) => { const p = params<z.infer<typeof NeedIdParamT>>(req); res.status(201).json({ data: await nsvc.createPledge(req.user!, p.id, p.needId, body<z.infer<typeof PledgeSchema>>(req), req.ip) }); });
+export const updatePledge = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await nsvc.updatePledge(req.user!, params<z.infer<IdParamT>>(req).id, body<z.infer<typeof UpdPledgeSchema>>(req), req.ip) }); });
+export const minimumNeedsCalc = asyncHandler(async (req: Request, res: Response) => { const q = query<z.infer<typeof MinNeedsQuery>>(req); res.json({ data: await nsvc.shelterMinimumNeeds(params<z.infer<IdParamT>>(req).id, q.days) }); });

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { api, ApiError, type Envelope, type ListEnvelope } from "@/lib/api";
+import { ShelterNeedsPanel } from "@/components/ShelterNeedsPanel";
 import { fmtDate, type ApiShelter } from "@/lib/apiTypes";
 import { useApi } from "@/hooks/useApi";
 
@@ -18,6 +19,7 @@ const EMPTY: FormState = { name: "", address: "", area: "North District", capaci
 const AREAS = ["North District", "South District", "East District", "West District", "Central District"];
 
 export default function ShelterManagement() {
+  const [needsFor, setNeedsFor] = useState<ApiShelter | null>(null);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<ApiShelter | null>(null);
   const [creating, setCreating] = useState(false);
@@ -80,7 +82,7 @@ export default function ShelterManagement() {
                     <TableCell className="font-semibold">{s.available}</TableCell>
                     <TableCell className="max-w-56 text-xs text-muted-foreground">{s.accessibility ?? "Not recorded"}</TableCell>
                     <TableCell className="whitespace-nowrap">{fmtDate(s.updatedAt)}</TableCell>
-                    <TableCell><div className="flex justify-end gap-1.5"><Button size="sm" variant="outline" onClick={() => openEdit(s)}>Edit</Button><Button size="sm" variant="outline" onClick={() => void remove(s)}>Delete</Button></div></TableCell>
+                    <TableCell><div className="flex justify-end gap-1.5"><Button size="sm" variant="outline" onClick={() => setNeedsFor(s)}>Needs</Button><Button size="sm" variant="outline" onClick={() => openEdit(s)}>Edit</Button><Button size="sm" variant="outline" onClick={() => void remove(s)}>Delete</Button></div></TableCell>
                   </TableRow>))}
             </TableBody>
           </Table>)}
@@ -107,6 +109,13 @@ export default function ShelterManagement() {
             <Button variant="outline" onClick={() => { setEditing(null); setCreating(false); }}>Cancel</Button>
             <Button onClick={() => void save()} disabled={busy}>{busy ? "Saving…" : "Save shelter"}</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!needsFor} onOpenChange={(o) => { if (!o) setNeedsFor(null); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Relief needs — {needsFor?.name}</DialogTitle></DialogHeader>
+          {needsFor && <ShelterNeedsPanel shelterId={needsFor.id} staff />}
         </DialogContent>
       </Dialog>
     </div>

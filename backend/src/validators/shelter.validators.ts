@@ -33,3 +33,25 @@ export const listSheltersQuery = paginationQuery.extend({
   status: z.nativeEnum(ShelterStatus).optional(),
   withSpace: z.coerce.boolean().optional(),
 });
+export const createNeedSchema = z.object({
+  item: z.string().trim().min(2).max(120),
+  category: z.enum(["FOOD", "WATER", "CLOTHING", "MEDICAL", "HYGIENE", "SHELTER_SUPPLIES", "OTHER"]).optional().default("OTHER"),
+  quantityNeeded: z.coerce.number().int().min(1).max(1_000_000),
+  unit: z.string().trim().min(1).max(30).optional().default("units"),
+  notes: z.string().trim().max(500).optional(),
+});
+export const updateNeedSchema = z.object({
+  item: z.string().trim().min(2).max(120).optional(),
+  category: z.enum(["FOOD", "WATER", "CLOTHING", "MEDICAL", "HYGIENE", "SHELTER_SUPPLIES", "OTHER"]).optional(),
+  quantityNeeded: z.coerce.number().int().min(1).max(1_000_000).optional(),
+  unit: z.string().trim().min(1).max(30).optional(),
+  status: z.enum(["OPEN", "FULFILLED", "CLOSED"]).optional(),
+  notes: z.string().trim().max(500).nullable().optional(),
+});
+export const createPledgeSchema = z.object({
+  quantity: z.coerce.number().int().min(1).max(1_000_000),
+  note: z.string().trim().max(300).optional(),
+});
+export const updatePledgeSchema = z.object({ status: z.enum(["DELIVERED", "CANCELLED"]) });
+export const needIdParam = z.object({ id: z.string().min(1), needId: z.string().min(1) });
+export const minimumNeedsQuery = z.object({ days: z.coerce.number().int().min(1).max(30).optional().default(3) });

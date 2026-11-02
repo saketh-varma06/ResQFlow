@@ -220,6 +220,18 @@ paths:
     get: { tags: [SOS], summary: "Stage C: responder units ranked by OSRM road time to this SOS (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Ranked units with ETA/distance + unranked list }, "400": { $ref: "#/components/responses/Error" } } }
   /api/sos/{id}/route:
     get: { tags: [SOS], summary: "Stage C: driving route from a unit's base to this SOS — query ?unit=<profileId>", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Route with duration/distance/geometry } } }
+  /api/shelters/{id}/needs:
+    get: { tags: [Shelters], summary: "Stage D: relief needs for a shelter with pledge progress (citizens see only their own pledge details)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Needs list } } }
+    post: { tags: [Shelters], summary: "Stage D: post an itemised need (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [item, quantityNeeded], properties: { item: { type: string }, category: { type: string }, quantityNeeded: { type: integer }, unit: { type: string }, notes: { type: string } } } } } }, responses: { "201": { description: Need } } }
+  /api/shelters/{id}/needs/{needId}:
+    patch: { tags: [Shelters], summary: "Stage D: update/close a need (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }, { name: needId, in: path, required: true, schema: { type: string } }], responses: { "200": { description: Need } } }
+    delete: { tags: [Shelters], summary: "Stage D: delete a need and its pledges (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }, { name: needId, in: path, required: true, schema: { type: string } }], responses: { "200": { description: Deleted } } }
+  /api/shelters/{id}/needs/{needId}/pledges:
+    post: { tags: [Shelters], summary: "Stage D: pledge a quantity against a need (any signed-in user; capped at the remaining amount)", parameters: [{ $ref: "#/components/parameters/Id" }, { name: needId, in: path, required: true, schema: { type: string } }], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [quantity], properties: { quantity: { type: integer }, note: { type: string } } } } } }, responses: { "201": { description: Pledge + updated need } } }
+  /api/shelters/pledges/{id}:
+    patch: { tags: [Shelters], summary: "Stage D: mark a pledge DELIVERED (staff) or CANCELLED (donor/staff)", parameters: [{ $ref: "#/components/parameters/Id" }], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status], properties: { status: { type: string, enum: [DELIVERED, CANCELLED] } } } } } }, responses: { "200": { description: Pledge } } }
+  /api/shelters/{id}/minimum-needs:
+    get: { tags: [Shelters], summary: "Stage D: Sphere/InaSAFE-style minimum-needs estimate from current occupancy (?days=1..30)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Estimate with stated assumptions } } }
   /api/responders:
     get:
       tags: [Responders]

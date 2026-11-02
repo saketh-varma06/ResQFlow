@@ -10,3 +10,11 @@ shelterRouter.get("/:id", optionalAuth, validate({ params: idParam }), c.getOne)
 shelterRouter.post("/", requireAuth, requireRole("ADMIN"), validate({ body: createShelterSchema }), c.create);
 shelterRouter.patch("/:id", requireAuth, requireRole("ADMIN"), validate({ params: idParam, body: updateShelterSchema }), c.update);
 shelterRouter.delete("/:id", requireAuth, requireRole("ADMIN"), validate({ params: idParam }), c.remove);
+import { createNeedSchema, createPledgeSchema, minimumNeedsQuery, needIdParam, updateNeedSchema, updatePledgeSchema } from "../validators/shelter.validators";
+shelterRouter.get("/:id/needs", requireAuth, validate({ params: idParam }), c.listNeeds);
+shelterRouter.post("/:id/needs", requireAuth, requireRole("RESPONDER", "ADMIN"), validate({ params: idParam, body: createNeedSchema }), c.createNeed);
+shelterRouter.patch("/:id/needs/:needId", requireAuth, requireRole("RESPONDER", "ADMIN"), validate({ params: needIdParam, body: updateNeedSchema }), c.updateNeed);
+shelterRouter.delete("/:id/needs/:needId", requireAuth, requireRole("RESPONDER", "ADMIN"), validate({ params: needIdParam }), c.deleteNeed);
+shelterRouter.post("/:id/needs/:needId/pledges", requireAuth, validate({ params: needIdParam, body: createPledgeSchema }), c.createPledge);
+shelterRouter.patch("/pledges/:id", requireAuth, validate({ params: idParam, body: updatePledgeSchema }), c.updatePledge);
+shelterRouter.get("/:id/minimum-needs", requireAuth, validate({ params: idParam, query: minimumNeedsQuery }), c.minimumNeedsCalc);

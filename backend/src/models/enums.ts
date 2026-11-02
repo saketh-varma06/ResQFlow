@@ -103,6 +103,11 @@ export const CAP_SEVERITIES = ["Extreme", "Severe", "Moderate", "Minor", "Unknow
 /** How a citizen's alert subscription targets an area. */
 export const ALERT_SUB_MODES = ["DISTRICT", "RADIUS"] as const;
 
+/** Relief logistics (Stage D). */
+export const NEED_CATEGORIES = ["FOOD", "WATER", "CLOTHING", "MEDICAL", "HYGIENE", "SHELTER_SUPPLIES", "OTHER"] as const;
+export const NEED_STATUSES = ["OPEN", "FULFILLED", "CLOSED"] as const;
+export const PLEDGE_STATUSES = ["PLEDGED", "DELIVERED", "CANCELLED"] as const;
+
 /** Opt-in vulnerability flags; each flag transparently adds to the priority score with a stated reason. */
 export const VULNERABLE_GROUPS = [
   "ELDERLY",
