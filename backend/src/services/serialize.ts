@@ -24,8 +24,18 @@ export function toApi<T>(value: T): T {
   if (isMongooseDoc(value)) {
     const obj = value.toObject({ virtuals: true }) as Plain;
     // Drop relation keys that were not populated (Prisma `include` parity).
-    for (const name of Object.keys(value.schema.virtuals)) {
-      if (!value.populated(name)) delete obj[name];
+    // Exception: a justOne relation whose foreign key is null WAS included —
+    // Prisma returned it as null (e.g. an unassigned SOS's responderProfile),
+    // but Mongoose does not register population for a null local field.
+    for (const [name, virt] of Object.entries(value.schema.virtuals)) {
+      if (name === "id" || value.populated(name)) continue;
+      const opts = (virt as { options?: { localField?: unknown; justOne?: boolean } }).options;
+      const localField = typeof opts?.localField === "string" ? opts.localField : undefined;
+      if (opts?.justOne && localField && (value as unknown as { get: (p: string) => unknown }).get(localField) == null) {
+        obj[name] = null;
+      } else {
+        delete obj[name];
+      }
     }
     // Null-fill unset scalar schema paths (Prisma returned nulls).
     for (const path of Object.keys(value.schema.paths)) {
@@ -37,10 +47,12 @@ export function toApi<T>(value: T): T {
   if (value && typeof value === "object") {
     const src = value as Plain;
     const out: Plain = {};
-    // StatusHistory storage shape → API shape.
+    // StatusHistory storage shape → API shape (with the same _id/__v normalisation).
     if (typeof src.entityType === "string" && typeof src.entityId === "string") {
-      const { entityType, entityId, ...rest } = src;
-      const mapped: Plain = { ...rest, [entityType === "INCIDENT" ? "incidentId" : "sosId"]: entityId };
+      const { entityType, entityId, _id, __v, ...rest } = src;
+      const mapped: Plain = { ...rest };
+      if (_id !== undefined) mapped.id = _id;
+      mapped[entityType === "INCIDENT" ? "incidentId" : "sosId"] = entityId;
       for (const [k, v] of Object.entries(mapped)) out[k] = toApi(v);
       return out as T;
     }
