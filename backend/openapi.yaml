@@ -244,6 +244,10 @@ paths:
   /api/sos/{id}/field-reports:
     get: { tags: [SOS], summary: "Stage E: structured field reports for this SOS", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Field reports } } }
     post: { tags: [SOS], summary: "Stage E: file a field report", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "201": { description: Field report } } }
+  /api/analytics/sitrep:
+    get: { tags: [Analytics], summary: "Stage F: one-click Situation Report from live counts (RESPONDER/ADMIN); ?format=text returns a paste-ready plain-text SitRep", responses: { "200": { description: SitRep (JSON or text) } } }
+  /api/analytics/replay:
+    get: { tags: [Analytics], summary: "Stage F: after-action replay stream — status transitions + audit entries merged chronologically (ADMIN, ?hours=1..168)", responses: { "200": { description: Replay events } } }
   /api/responders:
     get:
       tags: [Responders]

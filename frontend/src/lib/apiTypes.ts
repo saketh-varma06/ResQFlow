@@ -57,7 +57,12 @@ export interface ExtSource<T> { source: string; sourceUrl: string; fetchedAt: st
 export interface ExtWeather { latitude: number; longitude: number; timezone: string; temperatureC: number; humidityPct: number; precipitationMm: number; rainMm: number; weatherCode: number; condition: string; windKph: number; windGustsKph: number; forecast: { date: string; precipitationMm: number; precipitationProbabilityPct: number | null }[] }
 export interface ExtQuake { id: string; magnitude: number; place: string; time: string; depthKm: number; latitude: number; longitude: number; tsunami: boolean; url: string }
 export interface ExtGdacs { title: string; description: string; link: string; publishedAt: string; alertLevel: string; eventType: string; indiaRelated: boolean }
-export interface ExtOverview { weather: ExtSource<ExtWeather>; earthquakes: ExtSource<ExtQuake[]>; gdacs: ExtSource<ExtGdacs[]>; generatedAt: string }
+export interface ExtEonet { id: string; title: string; categories: string[]; latitude: number; longitude: number; date: string; link: string }
+export interface ExtFloodWatch { name: string; latitude: number; longitude: number; dischargeToday: number; maxDischarge7d: number; trend: string; unit: string }
+export interface ExtOverview { weather: ExtSource<ExtWeather>; earthquakes: ExtSource<ExtQuake[]>; gdacs: ExtSource<ExtGdacs[]>; eonet?: ExtSource<ExtEonet[]>; flood?: ExtSource<ExtFloodWatch[]>; generatedAt: string }
+export interface ApiSitrep { generatedAt: string; windowHours: number; overview: { openIncidents: number; openSos: number; pendingSos: number; oldestPendingSosMinutes: number | null; activeAlerts: number }; last24h: { newIncidents: number; newSos: number; resolvedIncidents: number; resolvedSos: number }; openBySeverity: { severity: string; count: number }[]; openByType: { type: string; count: number }[]; busiestAreas: { area: string; openReports: number }[]; shelters: { count: number; capacity: number; occupied: number; utilizationPercent: number; fullShelters: string[] }; activeAlertTitles: string[]; topPriorities: { kind: string; title: string; area: string; priorityScore: number; priorityLevel: string; status: string }[] }
+export interface ApiReplayEvent { at: string; kind: string; entityType: string; entityId: string; title: string; detail: string; actorEmail?: string; latitude?: number | null; longitude?: number | null }
+export interface ApiReplay { events: ApiReplayEvent[]; from: string; to: string; truncated: boolean }
 
 export interface AnalyticsOverview {
   users: { total: number; byRole: Record<string, number> };

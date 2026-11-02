@@ -148,6 +148,53 @@ export async function geocodePlaces(query: string): Promise<SourceResult<GeoPlac
 }
 
 export async function getExternalOverview(lat?: number, lon?: number) {
-  const [weather, earthquakes, gdacs] = await Promise.all([getWeather(lat, lon), getEarthquakes(), getGdacs()]);
-  return { weather, earthquakes, gdacs, generatedAt: new Date().toISOString() };
+  const [weather, earthquakes, gdacs, eonet, flood] = await Promise.all([getWeather(lat, lon), getEarthquakes(), getGdacs(), getEonet(), getFloodWatch()]);
+  return { weather, earthquakes, gdacs, eonet, flood, generatedAt: new Date().toISOString() };
+}
+
+export interface EonetEvent { id: string; title: string; categories: string[]; latitude: number; longitude: number; date: string; link: string }
+interface EonetRaw { events?: { id: string; title: string; link: string; categories?: { title: string }[]; geometry?: { date: string; coordinates: [number, number] }[] }[] }
+const IN_BBOX = (lat: number, lon: number) => lat >= 5 && lat <= 40 && lon >= 65 && lon <= 100;
+export function filterEonet(raw: EonetRaw): EonetEvent[] {
+  const out: EonetEvent[] = [];
+  for (const e of raw.events ?? []) {
+    const g = e.geometry?.[e.geometry.length - 1];
+    if (!g) continue;
+    const [lon, lat] = g.coordinates;
+    if (!IN_BBOX(lat, lon)) continue;
+    out.push({ id: e.id, title: e.title, categories: (e.categories ?? []).map((c) => c.title), latitude: lat, longitude: lon, date: g.date, link: e.link });
+    if (out.length >= 10) break;
+  }
+  return out;
+}
+export async function getEonet(): Promise<SourceResult<EonetEvent[]>> {
+  const url = "https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100&days=30";
+  return cached("eonet", 15 * 60_000, "NASA EONET", url, async () => filterEonet(JSON.parse(await fetchText(url)) as EonetRaw));
+}
+
+export interface FloodWatch { name: string; latitude: number; longitude: number; dischargeToday: number; maxDischarge7d: number; trend: "rising" | "falling" | "steady"; unit: string }
+interface FloodRaw { daily?: { time: string[]; river_discharge: (number | null)[] } }
+export async function floodWatchPoint(name: string, lat: number, lon: number): Promise<FloodWatch> {
+  const url = `https://flood-api.open-meteo.com/v1/flood?latitude=${lat}&longitude=${lon}&daily=river_discharge&forecast_days=7`;
+  const raw = JSON.parse(await fetchText(url)) as FloodRaw;
+  const series = (raw.daily?.river_discharge ?? []).filter((v): v is number => typeof v === "number");
+  if (series.length === 0) throw new Error("no discharge data");
+  const today = series[0];
+  const max = Math.max(...series);
+  const last = series[series.length - 1];
+  return { name, latitude: lat, longitude: lon, dischargeToday: Math.round(today), maxDischarge7d: Math.round(max), trend: last > today * 1.05 ? "rising" : last < today * 0.95 ? "falling" : "steady", unit: "m³/s" };
+}
+export async function getFloodWatch(): Promise<SourceResult<FloodWatch[]>> {
+  const sourceUrl = "https://flood-api.open-meteo.com/v1/flood (GloFAS river discharge)";
+  return cached("flood", 30 * 60_000, "Open-Meteo Flood (GloFAS)", sourceUrl, async () => {
+    // Watch points: Delhi (Yamuna) by default, plus centres of active alerts when they have one.
+    const { AlertModel } = await import("../models");
+    const alerts = await AlertModel.find({ status: "ACTIVE", centerLat: { $ne: null } }).sort({ publishedAt: -1 }).limit(2);
+    const points: { name: string; lat: number; lon: number }[] = [{ name: "Delhi (Yamuna)", lat: 28.61, lon: 77.21 },
+      ...alerts.filter((a) => a.centerLat != null && a.centerLng != null).map((a) => ({ name: a.area, lat: a.centerLat as number, lon: a.centerLng as number }))];
+    const results: FloodWatch[] = [];
+    for (const p of points) { try { results.push(await floodWatchPoint(p.name, p.lat, p.lon)); } catch { /* one failing point must not sink the layer */ } }
+    if (results.length === 0) throw new Error("all flood watch points failed");
+    return results;
+  });
 }

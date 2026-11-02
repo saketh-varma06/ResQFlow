@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, BedDouble, ClipboardCheck, Clock3, Siren, TriangleAlert } from "lucide-react";
 import { api, type Envelope } from "@/lib/api";
+import { SitrepPanel } from "@/components/SitrepPanel";
+import { ReplayPanel } from "@/components/ReplayPanel";
 import { titleCase, type AnalyticsOverview } from "@/lib/apiTypes";
 import { useApi } from "@/hooks/useApi";
 
@@ -26,6 +28,8 @@ export default function AnalyticsPage() {
   return (
     <div>
       <PageHeader title="Analytics" description={`Computed from live database records · generated ${new Date(d.generatedAt).toLocaleTimeString()}. Nothing here is hardcoded.`} />
+      <SitrepPanel />
+      <ReplayPanel />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Pending SOS requests" value={String(d.sos.pending)} sub={d.sos.oldestPendingMinutes !== null ? `Oldest waiting ${fmtMin(d.sos.oldestPendingMinutes)}` : "Queue clear"} icon={Siren} tone="red" />
         <StatCard label="Avg acknowledgement (SOS)" value={fmtMin(d.response.avgAcknowledgementMinutes.sos)} sub={`Incidents: ${fmtMin(d.response.avgAcknowledgementMinutes.incidents)}`} icon={Clock3} tone="amber" />

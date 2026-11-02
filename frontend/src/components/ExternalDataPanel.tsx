@@ -1,4 +1,4 @@
-import { CloudRainWind, Globe2, Mountain, RefreshCw } from "lucide-react";
+import { CloudRainWind, Globe2, Mountain, RefreshCw, Satellite, Waves } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api, type Envelope } from "@/lib/api";
@@ -56,6 +56,20 @@ export default function ExternalDataPanel() {
               )) : <p className="text-muted-foreground">No current GDACS alerts.</p>) : <p className="text-muted-foreground">No GDACS data available.</p>}
               <SourceMeta s={d.gdacs} />
             </CardContent></Card>
+            {d.flood && <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><Waves className="h-4 w-4 text-blue-700" aria-hidden /> River discharge — flood watch (GloFAS)</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">
+              {d.flood.data ? (d.flood.data.length ? d.flood.data.map((f) => (
+                <p key={f.name} className="rounded bg-slate-50 px-2 py-1.5"><span className="font-semibold">{f.name}</span><br />
+                  <span className="text-xs text-muted-foreground">Today {f.dischargeToday} {f.unit} · 7-day max {f.maxDischarge7d} {f.unit} · trend {f.trend}</span></p>
+              )) : <p className="text-muted-foreground">No discharge data for the watch points.</p>) : <p className="text-muted-foreground">No flood-watch data available.</p>}
+              <SourceMeta s={d.flood} />
+            </CardContent></Card>}
+            {d.eonet && <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><Satellite className="h-4 w-4 text-violet-700" aria-hidden /> Natural events — NASA EONET (region)</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">
+              {d.eonet.data ? (d.eonet.data.length ? d.eonet.data.slice(0, 5).map((e) => (
+                <p key={e.id} className="rounded bg-slate-50 px-2 py-1.5"><a className="font-medium underline" href={e.link} target="_blank" rel="noreferrer">{e.title}</a><br />
+                  <span className="text-xs text-muted-foreground">{e.categories.join(", ") || "Event"} · {fmtDate(e.date)}</span></p>
+              )) : <p className="text-muted-foreground">No open natural events tracked in the region right now.</p>) : <p className="text-muted-foreground">No EONET data available.</p>}
+              <SourceMeta s={d.eonet} />
+            </CardContent></Card>}
           </div>)}
     </section>
   );
