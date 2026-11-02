@@ -1,1 +1,25 @@
-{"dependencies":{"mongoose":"^8.9.5"},"description":"Prepared (NOT connected) Mongoose data layer for a future ResQFlow migration from PostgreSQL to MongoDB Atlas. The running application uses PostgreSQL via Prisma; nothing in the app imports this package yet.","devDependencies":{"@types/node":"^22.10.5","typescript":"^5.7.3"},"engines":{"node":">=20"},"main":"dist/index.js","name":"@resqflow/mongodb-layer","private":true,"scripts":{"build":"tsc -p tsconfig.json","typecheck":"tsc --noEmit"},"types":"dist/index.d.ts","version":"0.1.0"}
+{
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "mongoose": "^8.9.5"
+  },
+  "description": "Prepared (NOT connected) Mongoose data layer for a future ResQFlow migration from PostgreSQL to MongoDB Atlas. The running application uses PostgreSQL via Prisma; nothing in the app imports this package yet.",
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "dist/index.js",
+  "name": "@resqflow/mongodb-layer",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run build && node dist/verify.js"
+  },
+  "types": "dist/index.d.ts",
+  "version": "0.1.0"
+}
