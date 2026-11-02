@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { api, ApiError, type Envelope, type ListEnvelope } from "@/lib/api";
-import { enqueueOutbox } from "@/lib/outbox";
+import { enqueueOutbox, newClientRequestId } from "@/lib/outbox";
 import { SOS_CATEGORIES, VULNERABLE_GROUPS, fmtDate, titleCase, type ApiSos } from "@/lib/apiTypes";
 import { useApi } from "@/hooks/useApi";
 import { useAuth } from "@/context/AuthContext";
@@ -59,7 +59,7 @@ export default function SosPage() {
 
   async function submit() {
     setBusy(true); setError("");
-    const payload = {
+    const payload = { clientRequestId: newClientRequestId(),
       need: need.trim(), category, people, injuriesReported: injuries, trapped, vulnerableGroups: vulnerable,
       location: location.trim(), area, details: details.trim() || undefined, phone: phone.trim() || undefined,
       latitude: coords?.lat, longitude: coords?.lng,

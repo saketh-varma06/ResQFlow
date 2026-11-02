@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { api, ApiError, type Envelope, type ListEnvelope } from "@/lib/api";
-import { enqueueOutbox } from "@/lib/outbox";
+import { enqueueOutbox, newClientRequestId } from "@/lib/outbox";
 import { INCIDENT_TYPES, fmtDate, titleCase, type ApiIncident } from "@/lib/apiTypes";
 import { useApi } from "@/hooks/useApi";
 import { useAuth } from "@/context/AuthContext";
@@ -52,8 +52,8 @@ export default function ReportPage() {
     if (form.description.trim().length < 10) { setError("Describe what happened (at least 10 characters)."); return; }
     if (form.location.trim().length < 3) { setError("Enter where this is happening."); return; }
     setBusy(true);
+    const payload = { ...form, clientRequestId: newClientRequestId(), title: form.title.trim(), description: form.description.trim(), location: form.location.trim(), latitude: coords?.lat, longitude: coords?.lng };
     try {
-      const payload = { ...form, title: form.title.trim(), description: form.description.trim(), location: form.location.trim(), latitude: coords?.lat, longitude: coords?.lng };
       const r = await api<Envelope<ApiIncident>>("/api/incidents", { method: "POST", body: JSON.stringify(payload) });
       localStorage.removeItem("resqflow_report_draft_v1");
       setCreated(r.data);
@@ -62,7 +62,7 @@ export default function ReportPage() {
     } catch (err) {
       const retryable = !(err instanceof ApiError) || err.status === 0 || err.status >= 500;
       if (retryable) {
-        enqueueOutbox("incident", { ...form, title: form.title.trim(), description: form.description.trim(), location: form.location.trim(), latitude: coords?.lat, longitude: coords?.lng });
+        enqueueOutbox("incident", payload);
         localStorage.removeItem("resqflow_report_draft_v1");
         setQueuedLocally(true);
       } else {

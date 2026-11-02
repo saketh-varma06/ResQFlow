@@ -232,6 +232,18 @@ paths:
     patch: { tags: [Shelters], summary: "Stage D: mark a pledge DELIVERED (staff) or CANCELLED (donor/staff)", parameters: [{ $ref: "#/components/parameters/Id" }], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status], properties: { status: { type: string, enum: [DELIVERED, CANCELLED] } } } } } }, responses: { "200": { description: Pledge } } }
   /api/shelters/{id}/minimum-needs:
     get: { tags: [Shelters], summary: "Stage D: Sphere/InaSAFE-style minimum-needs estimate from current occupancy (?days=1..30)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Estimate with stated assumptions } } }
+  /api/incidents/{id}/checklist:
+    get: { tags: [Incidents], summary: "Stage E: per-category field checklist with persisted ticks", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Checklist state } } }
+    patch: { tags: [Incidents], summary: "Stage E: update checklist ticks (assigned unit or ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [checkedKeys], properties: { checkedKeys: { type: array, items: { type: string } } } } } } }, responses: { "200": { description: Checklist state } } }
+  /api/incidents/{id}/field-reports:
+    get: { tags: [Incidents], summary: "Stage E: structured field reports for this incident", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Field reports } } }
+    post: { tags: [Incidents], summary: "Stage E: file a field report (assigned unit or ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [situation], properties: { situation: { type: string }, peopleCount: { type: integer }, injuriesCount: { type: integer }, needsSummary: { type: string }, risks: { type: string } } } } } }, responses: { "201": { description: Field report } } }
+  /api/sos/{id}/checklist:
+    get: { tags: [SOS], summary: "Stage E: per-category field checklist with persisted ticks", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Checklist state } } }
+    patch: { tags: [SOS], summary: "Stage E: update checklist ticks (assigned unit, any responder while unassigned, or ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Checklist state } } }
+  /api/sos/{id}/field-reports:
+    get: { tags: [SOS], summary: "Stage E: structured field reports for this SOS", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Field reports } } }
+    post: { tags: [SOS], summary: "Stage E: file a field report", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "201": { description: Field report } } }
   /api/responders:
     get:
       tags: [Responders]

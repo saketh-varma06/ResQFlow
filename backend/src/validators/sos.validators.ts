@@ -12,6 +12,7 @@ export const createSosSchema = z.object({
   details: z.string().trim().max(1000).optional(),
   phone: z.string().trim().max(20).optional(),
   injuriesReported: z.coerce.number().int().min(0).max(100_000).optional().default(0),
+  clientRequestId: z.string().trim().max(64).optional(),
   trapped: z.coerce.boolean().optional().default(false),
   vulnerableGroups: z.array(z.nativeEnum(VulnerableGroup)).max(5).optional().default([]),
 });

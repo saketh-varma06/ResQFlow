@@ -2,7 +2,7 @@ import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 import { idParam } from "../validators/common";
-import { addNoteSchema, assignIncidentSchema, createIncidentSchema, listIncidentsQuery, markDuplicateSchema, updateIncidentSchema, updateIncidentStatusSchema } from "../validators/incident.validators";
+import { addNoteSchema, assignIncidentSchema, checklistPatchSchema, createIncidentSchema, fieldReportSchema, listIncidentsQuery, markDuplicateSchema, updateIncidentSchema, updateIncidentStatusSchema } from "../validators/incident.validators";
 import * as c from "../controllers/incident.controller";
 export const incidentRouter = Router();
 incidentRouter.use(requireAuth);
@@ -25,3 +25,7 @@ incidentRouter.post("/:id/claim", requireRole("RESPONDER"), validate({ params: i
 incidentRouter.post("/:id/release", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.release);
 incidentRouter.get("/:id/dispatch", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.dispatch);
 incidentRouter.get("/:id/route", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.route);
+incidentRouter.get("/:id/checklist", validate({ params: idParam }), c.getChecklist);
+incidentRouter.patch("/:id/checklist", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam, body: checklistPatchSchema }), c.patchChecklist);
+incidentRouter.get("/:id/field-reports", validate({ params: idParam }), c.listFieldReports);
+incidentRouter.post("/:id/field-reports", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam, body: fieldReportSchema }), c.createFieldReport);

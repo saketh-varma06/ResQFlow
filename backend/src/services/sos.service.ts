@@ -22,6 +22,11 @@ const sosDetailPopulate = [
 ];
 
 export async function createSos(actor: AuthUser, input: z.infer<typeof createSosSchema>, ip?: string) {
+  // Idempotent offline sync: a retried submission with the same clientRequestId returns the original record.
+  if (input.clientRequestId) {
+    const existing = await SosRequestModel.findOne({ citizenId: actor.id, clientRequestId: input.clientRequestId });
+    if (existing) return out(await SosRequestModel.findById(existing.id).populate(sosPopulate));
+  }
   const now = new Date();
   const priority = computePriority({ category: input.category, peopleAffected: input.people, injuriesReported: input.injuriesReported, trapped: input.trapped, vulnerableGroups: input.vulnerableGroups, submittedAt: now, now });
   const created = await SosRequestModel.create({ ...input, citizenId: actor.id, priorityScore: priority.score, priorityLevel: priority.level, priorityReasons: priority.reasons });

@@ -20,6 +20,7 @@ export interface Incident {
   priorityScore: number;
   priorityLevel: PriorityLevel;
   priorityReasons: string[];
+  clientRequestId?: string;
   verificationStatus: VerificationStatus;
   duplicateOfId?: string | null;
   vulnerableGroups: VulnerableGroup[];
@@ -46,6 +47,7 @@ const incidentSchema = new Schema<Incident>(
     priorityScore: { type: Number, default: 0 },
     priorityLevel: { type: String, enum: PRIORITY_LEVELS, default: "LOW" },
     priorityReasons: { type: [String], default: [] },
+    clientRequestId: { type: String },
     verificationStatus: { type: String, enum: VERIFICATION_STATUSES, default: "UNVERIFIED" },
     duplicateOfId: { type: String, default: null },
     vulnerableGroups: { type: [String], enum: VULNERABLE_GROUPS, default: [] },
@@ -59,6 +61,7 @@ incidentSchema.index({ severity: 1 });
 incidentSchema.index({ type: 1 });
 incidentSchema.index({ area: 1 });
 incidentSchema.index({ reporterId: 1 });
+incidentSchema.index({ reporterId: 1, clientRequestId: 1 }, { unique: true, partialFilterExpression: { clientRequestId: { $type: "string" } } });
 incidentSchema.index({ createdAt: 1 });
 incidentSchema.index({ priorityLevel: 1 });
 

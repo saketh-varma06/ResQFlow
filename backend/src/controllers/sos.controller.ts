@@ -25,3 +25,9 @@ export const route = asyncHandler(async (req: Request, res: Response) => {
   if (!unit) { res.status(400).json({ error: "Query parameter 'unit' (responder profile id) is required" }); return; }
   res.json({ data: await dsvc2.routeFor("SOS", params<z.infer<typeof idParam>>(req).id, unit) });
 });
+import * as fsvc2 from "../services/fieldkit.service";
+import type { checklistPatchSchema as ChkSchema2, fieldReportSchema as FrSchema2 } from "../validators/incident.validators";
+export const getChecklist = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await fsvc2.getChecklist(req.user!, "SOS", params<z.infer<typeof idParam>>(req).id) }); });
+export const patchChecklist = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await fsvc2.updateChecklist(req.user!, "SOS", params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof ChkSchema2>>(req), req.ip) }); });
+export const listFieldReports = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await fsvc2.listFieldReports(req.user!, "SOS", params<z.infer<typeof idParam>>(req).id) }); });
+export const createFieldReport = asyncHandler(async (req: Request, res: Response) => { res.status(201).json({ data: await fsvc2.createFieldReport(req.user!, "SOS", params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof FrSchema2>>(req), req.ip) }); });

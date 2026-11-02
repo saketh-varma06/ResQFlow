@@ -13,6 +13,7 @@ export { AlertSubscriptionModel, type AlertSubscription } from "./AlertSubscript
 export { PushSubscriptionModel, type PushSubscription } from "./PushSubscription";
 export { ShelterNeedModel, type ShelterNeed } from "./ShelterNeed";
 export { PledgeModel, type Pledge } from "./Pledge";
+export { ChecklistStateModel, FieldReportModel, type ChecklistState, type FieldReport } from "./FieldKit";
 
 import { UserModel } from "./User";
 import { ResponderModel } from "./Responder";
@@ -28,6 +29,7 @@ import { AlertSubscriptionModel } from "./AlertSubscription";
 import { PushSubscriptionModel } from "./PushSubscription";
 import { ShelterNeedModel } from "./ShelterNeed";
 import { PledgeModel } from "./Pledge";
+import { ChecklistStateModel, FieldReportModel } from "./FieldKit";
 
 /** All models, for index sync and test cleanup. */
 export const ALL_MODELS = [
@@ -45,4 +47,6 @@ export const ALL_MODELS = [
   PushSubscriptionModel,
   ShelterNeedModel,
   PledgeModel,
+  ChecklistStateModel,
+  FieldReportModel,
 ] as const;

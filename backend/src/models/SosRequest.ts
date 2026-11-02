@@ -14,6 +14,7 @@ export interface SosRequest {
   priorityScore: number;
   priorityLevel: PriorityLevel;
   priorityReasons: string[];
+  clientRequestId?: string;
   verificationStatus: VerificationStatus;
   duplicateOfId?: string | null;
   vulnerableGroups: VulnerableGroup[];
@@ -41,6 +42,7 @@ const sosRequestSchema = new Schema<SosRequest>(
     priorityScore: { type: Number, default: 0 },
     priorityLevel: { type: String, enum: PRIORITY_LEVELS, default: "LOW" },
     priorityReasons: { type: [String], default: [] },
+    clientRequestId: { type: String },
     verificationStatus: { type: String, enum: VERIFICATION_STATUSES, default: "UNVERIFIED" },
     duplicateOfId: { type: String, default: null },
     vulnerableGroups: { type: [String], enum: VULNERABLE_GROUPS, default: [] },
@@ -58,6 +60,7 @@ const sosRequestSchema = new Schema<SosRequest>(
 
 sosRequestSchema.index({ status: 1 });
 sosRequestSchema.index({ citizenId: 1 });
+sosRequestSchema.index({ citizenId: 1, clientRequestId: 1 }, { unique: true, partialFilterExpression: { clientRequestId: { $type: "string" } } });
 sosRequestSchema.index({ createdAt: 1 });
 sosRequestSchema.index({ priorityLevel: 1 });
 

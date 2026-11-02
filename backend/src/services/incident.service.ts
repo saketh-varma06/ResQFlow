@@ -28,6 +28,11 @@ const assignmentPopulate = [
 ];
 
 export async function createIncident(actor: AuthUser, input: z.infer<typeof createIncidentSchema>, ip?: string) {
+  // Idempotent offline sync: a retried submission with the same clientRequestId returns the original record.
+  if (input.clientRequestId) {
+    const existing = await IncidentModel.findOne({ reporterId: actor.id, clientRequestId: input.clientRequestId });
+    if (existing) return out(await IncidentModel.findById(existing.id).populate(incidentDetailPopulate));
+  }
   const now = new Date();
   const priority = computePriority({ severity: input.severity, category: input.type, peopleAffected: input.peopleAffected, injuriesReported: input.injuriesReported, trapped: input.trapped, vulnerableGroups: input.vulnerableGroups, submittedAt: now, now });
   const created = await IncidentModel.create({ ...input, reporterId: actor.id, priorityScore: priority.score, priorityLevel: priority.level, priorityReasons: priority.reasons });

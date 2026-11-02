@@ -26,8 +26,13 @@ function save(items: OutboxItem[]) {
   localStorage.setItem(KEY, JSON.stringify(items));
   window.dispatchEvent(new CustomEvent(OUTBOX_EVENT));
 }
+export function newClientRequestId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 export function enqueueOutbox(kind: OutboxItem["kind"], payload: Record<string, unknown>): OutboxItem {
-  const item: OutboxItem = { id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind, payload, queuedAt: new Date().toISOString(), attempts: 0, state: "queued" };
+  // Stamp an idempotency key so a retried sync returns the original server record instead of duplicating it.
+  const stamped = payload.clientRequestId ? payload : { ...payload, clientRequestId: newClientRequestId() };
+  const item: OutboxItem = { id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind, payload: stamped, queuedAt: new Date().toISOString(), attempts: 0, state: "queued" };
   save([...listOutbox(), item]);
   return item;
 }

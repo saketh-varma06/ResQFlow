@@ -12,6 +12,7 @@ import MapView from "@/components/MapView";
 import { api, ApiError, type Envelope } from "@/lib/api";
 import { NEXT_STATUSES, fmtDate, titleCase, type ApiIncident, type ApiRoute } from "@/lib/apiTypes";
 import { DispatchPanel } from "@/components/DispatchPanel";
+import { FieldKitPanel } from "@/components/FieldKitPanel";
 import { useApi } from "@/hooks/useApi";
 import { useAuth } from "@/context/AuthContext";
 
@@ -98,6 +99,9 @@ export default function IncidentDetailsPage() {
             height={260} /></CardContent></Card>}
           {(user?.role === "RESPONDER" || user?.role === "ADMIN") && <Card><CardHeader><CardTitle>Nearest units</CardTitle></CardHeader><CardContent>
             <DispatchPanel kind="incidents" id={inc.id} canAssign={user?.role === "ADMIN"} onShowRoute={setRoute} onAssigned={() => void detail.reload()} />
+          </CardContent></Card>}
+          {(user?.role === "RESPONDER" || user?.role === "ADMIN") && <Card><CardHeader><CardTitle>Field kit</CardTitle></CardHeader><CardContent>
+            <FieldKitPanel kind="incidents" id={inc.id} />
           </CardContent></Card>}
           <Card><CardHeader><CardTitle>Timeline</CardTitle></CardHeader><CardContent>
             <ol className="relative space-y-3 border-l pl-4">

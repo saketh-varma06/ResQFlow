@@ -3,6 +3,7 @@ import { requireAuth, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 import { idParam } from "../validators/common";
 import { assignSosSchema, createSosSchema, listSosQuery, markDuplicateSchema, updateSosStatusSchema } from "../validators/sos.validators";
+import { checklistPatchSchema, fieldReportSchema } from "../validators/incident.validators";
 import * as c from "../controllers/sos.controller";
 export const sosRouter = Router();
 sosRouter.use(requireAuth);
@@ -18,3 +19,7 @@ sosRouter.post("/:id/unflag-duplicate", requireRole("RESPONDER", "ADMIN"), valid
 sosRouter.post("/:id/release", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.release);
 sosRouter.get("/:id/dispatch", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.dispatch);
 sosRouter.get("/:id/route", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.route);
+sosRouter.get("/:id/checklist", validate({ params: idParam }), c.getChecklist);
+sosRouter.patch("/:id/checklist", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam, body: checklistPatchSchema }), c.patchChecklist);
+sosRouter.get("/:id/field-reports", validate({ params: idParam }), c.listFieldReports);
+sosRouter.post("/:id/field-reports", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam, body: fieldReportSchema }), c.createFieldReport);
