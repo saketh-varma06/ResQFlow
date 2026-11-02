@@ -23,3 +23,5 @@ incidentRouter.post("/:id/mark-duplicate", requireRole("RESPONDER", "ADMIN"), va
 incidentRouter.post("/:id/unflag-duplicate", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.unflagDuplicate);
 incidentRouter.post("/:id/claim", requireRole("RESPONDER"), validate({ params: idParam }), c.claim);
 incidentRouter.post("/:id/release", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.release);
+incidentRouter.get("/:id/dispatch", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.dispatch);
+incidentRouter.get("/:id/route", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.route);

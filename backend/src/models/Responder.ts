@@ -9,6 +9,9 @@ export interface Responder {
   unitName: string;
   unitType: string;
   base: string;
+  /** Base coordinates for OSRM dispatch ranking (Stage C). Units without them are listed unranked. */
+  baseLat?: number;
+  baseLng?: number;
   members: number;
   readiness: ResponderReadiness;
   rating?: number;
@@ -24,6 +27,8 @@ const responderSchema = new Schema<Responder>(
     unitName: { type: String, required: true },
     unitType: { type: String, required: true },
     base: { type: String, required: true },
+    baseLat: { type: Number },
+    baseLng: { type: Number },
     members: { type: Number, default: 1 },
     readiness: { type: String, enum: RESPONDER_READINESS, default: "STANDBY" },
     rating: { type: Number },

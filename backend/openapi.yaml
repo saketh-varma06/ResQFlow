@@ -212,6 +212,14 @@ paths:
     post: { tags: [Push], summary: "Stage B: store/refresh this device's Web Push subscription", requestBody: { required: true, content: { application/json: { schema: { type: object, required: [endpoint, keys], properties: { endpoint: { type: string }, keys: { type: object, properties: { p256dh: { type: string }, auth: { type: string } } } } } } } }, responses: { "201": { description: Subscribed } } }
   /api/push/unsubscribe:
     post: { tags: [Push], summary: "Stage B: remove this device's Web Push subscription", requestBody: { required: true, content: { application/json: { schema: { type: object, required: [endpoint], properties: { endpoint: { type: string } } } } } }, responses: { "200": { description: Unsubscribed } } }
+  /api/incidents/{id}/dispatch:
+    get: { tags: [Incidents], summary: "Stage C: responder units ranked by OSRM road time to this incident (RESPONDER/ADMIN); labelled straight-line fallback when routing is down", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Ranked units with ETA/distance + unranked list }, "400": { $ref: "#/components/responses/Error" } } }
+  /api/incidents/{id}/route:
+    get: { tags: [Incidents], summary: "Stage C: driving route (GeoJSON LineString) from a unit's base to this incident — query ?unit=<profileId>", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Route with duration/distance/geometry } } }
+  /api/sos/{id}/dispatch:
+    get: { tags: [SOS], summary: "Stage C: responder units ranked by OSRM road time to this SOS (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Ranked units with ETA/distance + unranked list }, "400": { $ref: "#/components/responses/Error" } } }
+  /api/sos/{id}/route:
+    get: { tags: [SOS], summary: "Stage C: driving route from a unit's base to this SOS — query ?unit=<profileId>", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Route with duration/distance/geometry } } }
   /api/responders:
     get:
       tags: [Responders]

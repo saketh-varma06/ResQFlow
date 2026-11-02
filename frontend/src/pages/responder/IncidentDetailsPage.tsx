@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import MapView from "@/components/MapView";
 import { api, ApiError, type Envelope } from "@/lib/api";
-import { NEXT_STATUSES, fmtDate, titleCase, type ApiIncident } from "@/lib/apiTypes";
+import { NEXT_STATUSES, fmtDate, titleCase, type ApiIncident, type ApiRoute } from "@/lib/apiTypes";
+import { DispatchPanel } from "@/components/DispatchPanel";
 import { useApi } from "@/hooks/useApi";
 import { useAuth } from "@/context/AuthContext";
 
@@ -20,6 +21,7 @@ export default function IncidentDetailsPage() {
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [route, setRoute] = useState<ApiRoute | null>(null);
   const detail = useApi(() => api<Envelope<ApiIncident>>(`/api/incidents/${id}`), [id]);
   const inc = detail.data?.data;
 
@@ -89,7 +91,14 @@ export default function IncidentDetailsPage() {
               return null;
             })()}
           </CardContent></Card>
-          {inc.latitude && inc.longitude && <Card><CardContent className="p-2"><MapView markers={[{ id: inc.id, lat: inc.latitude, lng: inc.longitude, label: inc.title, severity: inc.severity === "CRITICAL" ? "critical" : inc.severity === "HIGH" ? "high" : inc.severity === "MODERATE" ? "moderate" : "low" }]} height={260} /></CardContent></Card>}
+          {inc.latitude && inc.longitude && <Card><CardContent className="p-2"><MapView
+            markers={[{ id: inc.id, lat: inc.latitude, lng: inc.longitude, label: inc.title, severity: inc.severity === "CRITICAL" ? "critical" : inc.severity === "HIGH" ? "high" : inc.severity === "MODERATE" ? "moderate" : "low" },
+              ...(route ? [{ id: `unit-${route.profileId}`, lat: route.geometry.coordinates[0][1], lng: route.geometry.coordinates[0][0], label: route.unitName, detail: `~${Math.round(route.durationMinutes)} min · ${route.distanceKm} km by road`, severity: "safe" as const, kind: "shelter" as const }] : [])]}
+            routeLine={route ? route.geometry.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]) : null}
+            height={260} /></CardContent></Card>}
+          {(user?.role === "RESPONDER" || user?.role === "ADMIN") && <Card><CardHeader><CardTitle>Nearest units</CardTitle></CardHeader><CardContent>
+            <DispatchPanel kind="incidents" id={inc.id} canAssign={user?.role === "ADMIN"} onShowRoute={setRoute} onAssigned={() => void detail.reload()} />
+          </CardContent></Card>}
           <Card><CardHeader><CardTitle>Timeline</CardTitle></CardHeader><CardContent>
             <ol className="relative space-y-3 border-l pl-4">
               {history.map((h) => (

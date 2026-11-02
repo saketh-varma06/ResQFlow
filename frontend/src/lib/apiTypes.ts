@@ -32,7 +32,10 @@ export const CAP_URGENCIES = ["Immediate", "Expected", "Future", "Past", "Unknow
 export const CAP_CERTAINTIES = ["Observed", "Likely", "Possible", "Unlikely", "Unknown"] as const;
 export interface ApiShelter { id: string; name: string; address: string; area: string; capacity: number; occupied: number; available: number; facilities: string[]; accessibility?: string | null; contact?: string | null; latitude?: number | null; longitude?: number | null; status: string; createdAt: string; updatedAt: string }
 export interface ApiNotification { id: string; title: string; body: string; type: string; isRead: boolean; createdAt: string; relatedEntityType?: string | null; relatedEntityId?: string | null }
-export interface ApiResponderProfile { id: string; userId: string; unitName: string; unitType: string; base: string; members: number; readiness: string; rating?: number | null; serviceArea?: string | null; user?: ApiUserRef }
+export interface ApiResponderProfile { id: string; userId: string; unitName: string; unitType: string; base: string; baseLat?: number | null; baseLng?: number | null; members: number; readiness: string; rating?: number | null; serviceArea?: string | null; user?: ApiUserRef }
+export interface ApiDispatchEntry { profileId: string; unitName: string; unitType: string; base: string; baseLat: number; baseLng: number; readiness: string; members: number; durationMinutes: number | null; distanceKm: number | null; straightLineKm: number }
+export interface ApiDispatchResult { target: { latitude: number; longitude: number }; source: string; ranked: ApiDispatchEntry[]; unranked: { profileId: string; unitName: string; reason: string }[]; generatedAt: string }
+export interface ApiRoute { profileId: string; unitName: string; durationMinutes: number; distanceKm: number; geometry: { type: "LineString"; coordinates: [number, number][] }; source: string }
 export const SOS_CATEGORIES = [
   { value: "FLOOD", label: "Flood" }, { value: "FIRE", label: "Fire" }, { value: "LANDSLIDE", label: "Landslide" },
   { value: "MEDICAL", label: "Medical emergency" }, { value: "TRAPPED", label: "Trapped or stranded" },

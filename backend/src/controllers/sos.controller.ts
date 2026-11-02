@@ -18,3 +18,10 @@ export const verify = asyncHandler(async (req: Request, res: Response) => { res.
 export const markDuplicate = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await vsvc.markDuplicate(req.user!, "SOS", params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof sosMarkDup>>(req).duplicateOfId, req.ip) }); });
 export const unflagDuplicate = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await vsvc.unflagDuplicate(req.user!, "SOS", params<z.infer<typeof idParam>>(req).id, req.ip) }); });
 export const release = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.releaseSos(req.user!, params<z.infer<typeof idParam>>(req).id, req.ip) }); });
+import * as dsvc2 from "../services/dispatch.service";
+export const dispatch = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await dsvc2.dispatchForSos(params<z.infer<typeof idParam>>(req).id) }); });
+export const route = asyncHandler(async (req: Request, res: Response) => {
+  const unit = typeof req.query.unit === "string" ? req.query.unit : "";
+  if (!unit) { res.status(400).json({ error: "Query parameter 'unit' (responder profile id) is required" }); return; }
+  res.json({ data: await dsvc2.routeFor("SOS", params<z.infer<typeof idParam>>(req).id, unit) });
+});

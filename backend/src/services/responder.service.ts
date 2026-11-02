@@ -83,6 +83,7 @@ export async function createResponder(actor: AuthUser, input: z.infer<typeof cre
   }
   const createdProfile = await ResponderModel.create({
     userId, unitName: input.unitName, unitType: input.unitType, base: input.base,
+    baseLat: input.baseLat, baseLng: input.baseLng,
     members: input.members ?? 1, serviceArea: input.serviceArea, readiness: input.readiness ?? "STANDBY",
   });
   const profile = await ResponderModel.findById(createdProfile.id).populate(USER_POPULATE);

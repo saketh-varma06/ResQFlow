@@ -14,8 +14,8 @@ import { titleCase, type ApiResponderProfile } from "@/lib/apiTypes";
 import { useApi } from "@/hooks/useApi";
 
 const READINESS = ["AVAILABLE", "DEPLOYED", "STANDBY", "OFF_DUTY"];
-interface CreateForm { email: string; name: string; password: string; unitName: string; unitType: string; base: string; members: number; serviceArea: string }
-const EMPTY: CreateForm = { email: "", name: "", password: "", unitName: "", unitType: "Rescue", base: "", members: 4, serviceArea: "" };
+interface CreateForm { email: string; name: string; password: string; unitName: string; unitType: string; base: string; baseLat: string; baseLng: string; members: number; serviceArea: string }
+const EMPTY: CreateForm = { email: "", name: "", password: "", unitName: "", unitType: "Rescue", base: "", baseLat: "", baseLng: "", members: 4, serviceArea: "" };
 
 export default function ResponderManagement() {
   const [error, setError] = useState("");
@@ -31,7 +31,7 @@ export default function ResponderManagement() {
     if (form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
     setBusy(true);
     try {
-      await api<Envelope<ApiResponderProfile>>("/api/responders", { method: "POST", body: JSON.stringify({ ...form, serviceArea: form.serviceArea || undefined }) });
+      await api<Envelope<ApiResponderProfile>>("/api/responders", { method: "POST", body: JSON.stringify({ ...form, baseLat: form.baseLat ? Number(form.baseLat) : undefined, baseLng: form.baseLng ? Number(form.baseLng) : undefined, serviceArea: form.serviceArea || undefined }) });
       setCreating(false); setForm(EMPTY); void list.reload();
     } catch (err) { setError(err instanceof ApiError ? err.message : "Create failed."); }
     finally { setBusy(false); }
@@ -40,7 +40,7 @@ export default function ResponderManagement() {
     if (!editing) return;
     setError(""); setBusy(true);
     try {
-      await api<Envelope<ApiResponderProfile>>(`/api/responders/${editing.id}`, { method: "PATCH", body: JSON.stringify({ unitName: editing.unitName, unitType: editing.unitType, base: editing.base, members: editing.members, readiness: editing.readiness, serviceArea: editing.serviceArea ?? undefined }) });
+      await api<Envelope<ApiResponderProfile>>(`/api/responders/${editing.id}`, { method: "PATCH", body: JSON.stringify({ unitName: editing.unitName, unitType: editing.unitType, base: editing.base, baseLat: editing.baseLat ?? undefined, baseLng: editing.baseLng ?? undefined, members: editing.members, readiness: editing.readiness, serviceArea: editing.serviceArea ?? undefined }) });
       setEditing(null); void list.reload();
     } catch (err) { setError(err instanceof ApiError ? err.message : "Save failed."); }
     finally { setBusy(false); }
@@ -80,6 +80,8 @@ export default function ResponderManagement() {
             <div className="space-y-1.5"><Label htmlFor="r-pass">Initial password</Label><Input id="r-pass" type="password" value={form.password} onChange={set("password")} /></div>
             <div className="space-y-1.5"><Label htmlFor="r-members">Members</Label><Input id="r-members" type="number" min={1} value={form.members} onChange={set("members")} /></div>
             <div className="space-y-1.5"><Label htmlFor="r-base">Base</Label><Input id="r-base" value={form.base} onChange={set("base")} /></div>
+            <div className="space-y-1.5"><Label htmlFor="r-blat">Base latitude (for dispatch ranking)</Label><Input id="r-blat" value={form.baseLat} onChange={set("baseLat")} placeholder="28.656" /></div>
+            <div className="space-y-1.5"><Label htmlFor="r-blng">Base longitude</Label><Input id="r-blng" value={form.baseLng} onChange={set("baseLng")} placeholder="77.231" /></div>
             <div className="space-y-1.5"><Label htmlFor="r-area">Service area (optional)</Label><Input id="r-area" value={form.serviceArea} onChange={set("serviceArea")} /></div>
           </div>
           {error && creating && <p role="alert" className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</p>}
@@ -94,6 +96,8 @@ export default function ResponderManagement() {
               <div className="space-y-1.5"><Label htmlFor="e-unit">Unit name</Label><Input id="e-unit" value={editing.unitName} onChange={(e) => setEditing({ ...editing, unitName: e.target.value })} /></div>
               <div className="space-y-1.5"><Label htmlFor="e-type">Unit type</Label><Input id="e-type" value={editing.unitType} onChange={(e) => setEditing({ ...editing, unitType: e.target.value })} /></div>
               <div className="space-y-1.5"><Label htmlFor="e-base">Base</Label><Input id="e-base" value={editing.base} onChange={(e) => setEditing({ ...editing, base: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label htmlFor="e-blat">Base latitude</Label><Input id="e-blat" value={editing.baseLat ?? ""} onChange={(e) => setEditing({ ...editing, baseLat: e.target.value ? Number(e.target.value) : null })} placeholder="28.656" /></div>
+              <div className="space-y-1.5"><Label htmlFor="e-blng">Base longitude</Label><Input id="e-blng" value={editing.baseLng ?? ""} onChange={(e) => setEditing({ ...editing, baseLng: e.target.value ? Number(e.target.value) : null })} placeholder="77.231" /></div>
               <div className="space-y-1.5"><Label htmlFor="e-members">Members</Label><Input id="e-members" type="number" min={1} value={editing.members} onChange={(e) => setEditing({ ...editing, members: Number(e.target.value) })} /></div>
               <div className="space-y-1.5"><Label htmlFor="e-ready">Readiness</Label><Select id="e-ready" value={editing.readiness} onChange={(e) => setEditing({ ...editing, readiness: e.target.value })}>{READINESS.map((r) => <option key={r} value={r}>{titleCase(r)}</option>)}</Select></div>
               <div className="space-y-1.5"><Label htmlFor="e-area">Service area</Label><Input id="e-area" value={editing.serviceArea ?? ""} onChange={(e) => setEditing({ ...editing, serviceArea: e.target.value })} /></div>

@@ -16,3 +16,5 @@ sosRouter.post("/:id/verify", requireRole("RESPONDER", "ADMIN"), validate({ para
 sosRouter.post("/:id/mark-duplicate", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam, body: markDuplicateSchema }), c.markDuplicate);
 sosRouter.post("/:id/unflag-duplicate", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.unflagDuplicate);
 sosRouter.post("/:id/release", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.release);
+sosRouter.get("/:id/dispatch", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.dispatch);
+sosRouter.get("/:id/route", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.route);

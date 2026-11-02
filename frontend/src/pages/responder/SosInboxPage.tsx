@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { PriorityBadge, StatusBadge, VerificationBadge } from "@/components/StatusBadge";
 import { VerificationPanel } from "@/components/VerificationPanel";
+import { DispatchPanel } from "@/components/DispatchPanel";
 import { EmptyState, LoadingCards } from "@/components/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,9 @@ export default function SosInboxPage() {
             {(detail.vulnerableGroups ?? []).length > 0 && <p className="text-muted-foreground">Vulnerable people: {detail.vulnerableGroups!.map((g) => titleCase(g)).join(", ")}</p>}
             <div><p className="mb-1 font-semibold">Verification &amp; duplicates</p>
               <VerificationPanel kind="sos" id={detail.id} verificationStatus={detail.verificationStatus} duplicateOfId={detail.duplicateOfId} onChanged={() => { void open(detail.id); void list.reload(); }} />
+            </div>
+            <div><p className="mb-1 font-semibold">Nearest units</p>
+              <DispatchPanel kind="sos" id={detail.id} canAssign onAssigned={() => { void open(detail.id); void list.reload(); }} />
             </div>
             <div><p className="mb-1 font-semibold">Response history</p>
               {(detail.statusHistory ?? []).length === 0 ? <p className="text-muted-foreground">No history yet.</p> : (
