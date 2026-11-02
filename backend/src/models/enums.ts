@@ -94,6 +94,15 @@ export const VERIFICATION_STATUSES = [
   "FLAGGED_DUPLICATE",
 ] as const;
 
+/** CAP 1.2 (OASIS) value lists — Stage B alerting. */
+export const CAP_CATEGORIES = ["Geo", "Met", "Safety", "Security", "Rescue", "Fire", "Health", "Env", "Transport", "Infra", "CBRNE", "Other"] as const;
+export const CAP_URGENCIES = ["Immediate", "Expected", "Future", "Past", "Unknown"] as const;
+export const CAP_CERTAINTIES = ["Observed", "Likely", "Possible", "Unlikely", "Unknown"] as const;
+export const CAP_SEVERITIES = ["Extreme", "Severe", "Moderate", "Minor", "Unknown"] as const;
+
+/** How a citizen's alert subscription targets an area. */
+export const ALERT_SUB_MODES = ["DISTRICT", "RADIUS"] as const;
+
 /** Opt-in vulnerability flags; each flag transparently adds to the priority score with a stated reason. */
 export const VULNERABLE_GROUPS = [
   "ELDERLY",

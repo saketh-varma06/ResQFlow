@@ -25,7 +25,11 @@ export const VULNERABLE_GROUPS = [
   { value: "PREGNANT", label: "Pregnant people" },
 ] as const;
 export interface ApiDuplicateCandidate { id: string; title?: string; need?: string; location: string; area?: string | null; status: string; priorityLevel: string; verificationStatus: string; createdAt: string; matchScore: number; matchReasons: string[] }
-export interface ApiAlert { id: string; title: string; type: string; severity: string; area: string; instructions: string; source: string; status: string; reach: number; issuedAt: string; expiresAt?: string | null }
+export interface ApiAlert { id: string; title: string; type: string; severity: string; area: string; instructions: string; source: string; status: string; reach: number; issuedAt: string; expiresAt?: string | null; headline?: string; capCategory?: string; capUrgency?: string; capCertainty?: string; centerLat?: number | null; centerLng?: number | null; radiusKm?: number | null }
+export interface ApiAlertSubscription { id: string; mode: string; area?: string | null; centerLat?: number | null; centerLng?: number | null; radiusKm?: number | null; minSeverity?: string | null; createdAt: string }
+export const CAP_CATEGORIES = ["Geo", "Met", "Safety", "Security", "Rescue", "Fire", "Health", "Env", "Transport", "Infra", "CBRNE", "Other"] as const;
+export const CAP_URGENCIES = ["Immediate", "Expected", "Future", "Past", "Unknown"] as const;
+export const CAP_CERTAINTIES = ["Observed", "Likely", "Possible", "Unlikely", "Unknown"] as const;
 export interface ApiShelter { id: string; name: string; address: string; area: string; capacity: number; occupied: number; available: number; facilities: string[]; accessibility?: string | null; contact?: string | null; latitude?: number | null; longitude?: number | null; status: string; createdAt: string; updatedAt: string }
 export interface ApiNotification { id: string; title: string; body: string; type: string; isRead: boolean; createdAt: string; relatedEntityType?: string | null; relatedEntityId?: string | null }
 export interface ApiResponderProfile { id: string; userId: string; unitName: string; unitType: string; base: string; members: number; readiness: string; rating?: number | null; serviceArea?: string | null; user?: ApiUserRef }

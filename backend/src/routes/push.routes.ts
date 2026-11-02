@@ -1,0 +1,10 @@
+import { Router } from "express";
+import { requireAuth } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { subscribePushSchema, unsubscribePushSchema } from "../validators/alert.validators";
+import * as c from "../controllers/push.controller";
+export const pushRouter = Router();
+pushRouter.use(requireAuth);
+pushRouter.get("/vapid-public-key", c.publicKey);
+pushRouter.post("/subscribe", validate({ body: subscribePushSchema }), c.subscribe);
+pushRouter.post("/unsubscribe", validate({ body: unsubscribePushSchema }), c.unsubscribe);

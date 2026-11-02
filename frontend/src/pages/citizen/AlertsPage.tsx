@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { api, type ListEnvelope } from "@/lib/api";
 import { fmtDate, type ApiAlert } from "@/lib/apiTypes";
 import { useApi } from "@/hooks/useApi";
+import { AlertSubscriptions } from "@/components/AlertSubscriptions";
 
 const FILTERS = ["ALL", "CRITICAL", "HIGH", "MODERATE", "LOW"] as const;
 export default function AlertsPage() {
@@ -31,6 +32,7 @@ export default function AlertsPage() {
             {openId === a.id && <p className="mt-2 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{a.instructions}</p>}
           </CardContent></Card>))}
         </div>}
+      <AlertSubscriptions />
     </div>
   );
 }

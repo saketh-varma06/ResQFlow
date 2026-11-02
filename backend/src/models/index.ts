@@ -9,6 +9,8 @@ export { NotificationModel, type Notification } from "./Notification";
 export { AssignmentModel, type Assignment } from "./Assignment";
 export { StatusHistoryModel, type StatusHistory, type StatusHistoryEntityType } from "./StatusHistory";
 export { AuditLogModel, type AuditLog } from "./AuditLog";
+export { AlertSubscriptionModel, type AlertSubscription } from "./AlertSubscription";
+export { PushSubscriptionModel, type PushSubscription } from "./PushSubscription";
 
 import { UserModel } from "./User";
 import { ResponderModel } from "./Responder";
@@ -20,6 +22,8 @@ import { NotificationModel } from "./Notification";
 import { AssignmentModel } from "./Assignment";
 import { StatusHistoryModel } from "./StatusHistory";
 import { AuditLogModel } from "./AuditLog";
+import { AlertSubscriptionModel } from "./AlertSubscription";
+import { PushSubscriptionModel } from "./PushSubscription";
 
 /** All models, for index sync and test cleanup. */
 export const ALL_MODELS = [
@@ -33,4 +37,6 @@ export const ALL_MODELS = [
   AssignmentModel,
   StatusHistoryModel,
   AuditLogModel,
+  AlertSubscriptionModel,
+  PushSubscriptionModel,
 ] as const;

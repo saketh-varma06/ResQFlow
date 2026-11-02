@@ -17,6 +17,7 @@ import { notificationRouter } from "./routes/notification.routes";
 import { analyticsRouter } from "./routes/analytics.routes";
 import externalRouter from "./routes/external.routes";
 import { auditRouter } from "./routes/audit.routes";
+import { pushRouter } from "./routes/push.routes";
 import { errorHandler, notFound } from "./middleware/error";
 import { csrfProtection } from "./middleware/csrf";
 import { loadOpenApiSpec } from "./docs/openapi";
@@ -41,6 +42,7 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/external", externalRouter);
 app.use("/api/audit-logs", auditRouter);
+app.use("/api/push", pushRouter);
 
 app.get("/api/docs.json", (_req, res) => res.json(loadOpenApiSpec()));
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(undefined, { swaggerOptions: { url: "/api/docs.json" } }));

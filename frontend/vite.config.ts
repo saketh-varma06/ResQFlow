@@ -7,8 +7,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       registerType: "autoUpdate",
       includeAssets: ["icons/icon-192.png", "icons/icon-512.png"],
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+      },
       manifest: {
         name: "ResQFlow — Disaster Management & Emergency Response",
         short_name: "ResQFlow",
@@ -22,25 +28,6 @@ export default defineConfig({
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
           { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-        ],
-      },
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api\//],
-        runtimeCaching: [
-          {
-            // Map tiles: cache so the last-viewed area still renders offline.
-            urlPattern: /^https:\/\/[abc]\.tile\.openstreetmap\.org\/.*/i,
-            handler: "CacheFirst",
-            options: { cacheName: "osm-tiles", expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 7 } },
-          },
-          {
-            // Last-known shelters/alerts for offline reference — always try network first.
-            urlPattern: /\/api\/(shelters|alerts)(\?.*)?$/i,
-            handler: "NetworkFirst",
-            options: { cacheName: "resqflow-reference", networkTimeoutSeconds: 4, expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 } },
-          },
         ],
       },
     }),

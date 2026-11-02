@@ -197,6 +197,21 @@ paths:
     post: { tags: [SOS], summary: "Stage A: clear a duplicate flag (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: SOS } } }
   /api/sos/{id}/release:
     post: { tags: [SOS], summary: "Stage A: release a claim (holding unit or ADMIN) — SOS returns to ACKNOWLEDGED, unassigned", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: SOS } } }
+  /api/alerts/subscriptions:
+    get: { tags: [Alerts], summary: "Stage B: my geo-targeted alert subscriptions", responses: { "200": { description: Subscription list } } }
+    post: { tags: [Alerts], summary: "Stage B: subscribe to alerts by DISTRICT or RADIUS (optional minSeverity)", requestBody: { required: true, content: { application/json: { schema: { type: object, required: [mode], properties: { mode: { type: string, enum: [DISTRICT, RADIUS] }, area: { type: string }, centerLat: { type: number }, centerLng: { type: number }, radiusKm: { type: number }, minSeverity: { type: string, enum: [LOW, MODERATE, HIGH, CRITICAL] } } } } } }, responses: { "201": { description: Subscription } } }
+  /api/alerts/subscriptions/{id}:
+    delete: { tags: [Alerts], summary: "Stage B: remove my subscription", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Deleted } } }
+  /api/alerts/cap.xml:
+    get: { tags: [Alerts], summary: "Stage B: public Atom feed embedding CAP 1.2 documents for all ACTIVE alerts", responses: { "200": { description: Atom+CAP feed (XML) } } }
+  /api/alerts/{id}/cap.xml:
+    get: { tags: [Alerts], summary: "Stage B: one alert as a CAP 1.2 XML document", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: CAP XML } } }
+  /api/push/vapid-public-key:
+    get: { tags: [Push], summary: "Stage B: Web Push VAPID public key (null when push is not configured)", responses: { "200": { description: Key envelope } } }
+  /api/push/subscribe:
+    post: { tags: [Push], summary: "Stage B: store/refresh this device's Web Push subscription", requestBody: { required: true, content: { application/json: { schema: { type: object, required: [endpoint, keys], properties: { endpoint: { type: string }, keys: { type: object, properties: { p256dh: { type: string }, auth: { type: string } } } } } } } }, responses: { "201": { description: Subscribed } } }
+  /api/push/unsubscribe:
+    post: { tags: [Push], summary: "Stage B: remove this device's Web Push subscription", requestBody: { required: true, content: { application/json: { schema: { type: object, required: [endpoint], properties: { endpoint: { type: string } } } } } }, responses: { "200": { description: Unsubscribed } } }
   /api/responders:
     get:
       tags: [Responders]
