@@ -70,6 +70,7 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
+  process.env.MONGODB_URI = uri; // connectMongo() reads the env var
   const run = Date.now().toString(36);
   const testEmail = `atlas-verify-${run}@resqflow.local`;
   const plainPassword = "AtlasVerify@12345";
