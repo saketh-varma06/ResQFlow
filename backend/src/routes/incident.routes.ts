@@ -2,7 +2,7 @@ import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 import { idParam } from "../validators/common";
-import { addNoteSchema, assignIncidentSchema, createIncidentSchema, listIncidentsQuery, updateIncidentSchema, updateIncidentStatusSchema } from "../validators/incident.validators";
+import { addNoteSchema, assignIncidentSchema, createIncidentSchema, listIncidentsQuery, markDuplicateSchema, updateIncidentSchema, updateIncidentStatusSchema } from "../validators/incident.validators";
 import * as c from "../controllers/incident.controller";
 export const incidentRouter = Router();
 incidentRouter.use(requireAuth);
@@ -17,3 +17,9 @@ incidentRouter.post("/:id/decline", requireRole("RESPONDER"), validate({ params:
 incidentRouter.post("/:id/complete", requireRole("RESPONDER"), validate({ params: idParam }), c.complete);
 incidentRouter.post("/:id/notes", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam, body: addNoteSchema }), c.addNote);
 incidentRouter.delete("/:id", requireRole("ADMIN"), validate({ params: idParam }), c.remove);
+incidentRouter.get("/:id/duplicates", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.duplicates);
+incidentRouter.post("/:id/verify", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.verify);
+incidentRouter.post("/:id/mark-duplicate", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam, body: markDuplicateSchema }), c.markDuplicate);
+incidentRouter.post("/:id/unflag-duplicate", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.unflagDuplicate);
+incidentRouter.post("/:id/claim", requireRole("RESPONDER"), validate({ params: idParam }), c.claim);
+incidentRouter.post("/:id/release", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam }), c.release);

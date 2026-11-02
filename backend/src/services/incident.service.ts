@@ -29,7 +29,7 @@ const assignmentPopulate = [
 
 export async function createIncident(actor: AuthUser, input: z.infer<typeof createIncidentSchema>, ip?: string) {
   const now = new Date();
-  const priority = computePriority({ severity: input.severity, category: input.type, peopleAffected: input.peopleAffected, injuriesReported: input.injuriesReported, trapped: input.trapped, submittedAt: now, now });
+  const priority = computePriority({ severity: input.severity, category: input.type, peopleAffected: input.peopleAffected, injuriesReported: input.injuriesReported, trapped: input.trapped, vulnerableGroups: input.vulnerableGroups, submittedAt: now, now });
   const created = await IncidentModel.create({ ...input, reporterId: actor.id, priorityScore: priority.score, priorityLevel: priority.level, priorityReasons: priority.reasons });
   const incident = await IncidentModel.findById(created.id).populate(incidentDetailPopulate);
   await StatusHistoryModel.create({ entityType: "INCIDENT", entityId: created.id, fromStatus: null, toStatus: "SUBMITTED", changedById: actor.id, note: "Incident reported" });
@@ -65,7 +65,7 @@ export async function updateIncident(actor: AuthUser, id: string, input: z.infer
   if (!existing) throw ApiError.notFound("Incident not found");
   if (actor.role === "CITIZEN" && existing.reporterId !== actor.id) throw ApiError.forbidden("You can only edit your own reports");
   if (actor.role === "CITIZEN" && existing.status !== "SUBMITTED") throw ApiError.forbidden("This report can no longer be edited");
-  const priority = computePriority({ severity: input.severity ?? existing.severity, category: input.type ?? existing.type, peopleAffected: input.peopleAffected ?? existing.peopleAffected, injuriesReported: input.injuriesReported ?? existing.injuriesReported, trapped: input.trapped ?? existing.trapped, submittedAt: existing.createdAt });
+  const priority = computePriority({ severity: input.severity ?? existing.severity, category: input.type ?? existing.type, peopleAffected: input.peopleAffected ?? existing.peopleAffected, injuriesReported: input.injuriesReported ?? existing.injuriesReported, trapped: input.trapped ?? existing.trapped, vulnerableGroups: input.vulnerableGroups ?? existing.vulnerableGroups, submittedAt: existing.createdAt });
   const updated = await IncidentModel.findByIdAndUpdate(id, { $set: { ...input, priorityScore: priority.score, priorityLevel: priority.level, priorityReasons: priority.reasons } }, { new: true }).populate(incidentDetailPopulate);
   await writeAudit({ actorId: actor.id, actorEmail: actor.email, action: "incident.update", targetType: "Incident", targetId: id, details: input, ipAddress: ip });
   return out(updated);
@@ -117,6 +117,57 @@ export async function assignIncident(actor: AuthUser, id: string, input: z.infer
   if (incident.reporterId !== actor.id) await notifyUser(incident.reporterId, "Responder assigned", `A responder unit was assigned to your report "${incident.title}".`, "INCIDENT_UPDATE", { type: "Incident", id });
   emitToRole("RESPONDER", "incident:assigned", out(assignment));
   return out(assignment);
+}
+
+/** Claim lock (responder self-service): first unit to claim holds the incident; others get 409. */
+export async function claimIncident(actor: AuthUser, id: string, ip?: string) {
+  const incident = await IncidentModel.findById(id);
+  if (!incident) throw ApiError.notFound("Incident not found");
+  const profile = await ResponderModel.findOne({ userId: actor.id });
+  if (!profile) throw ApiError.forbidden("You do not have a responder profile");
+  const active = await AssignmentModel.find({ incidentId: id, status: { $in: ["PENDING", "ACCEPTED"] } });
+  const mine = active.find((a) => a.responderProfileId === profile.id);
+  if (mine) return out(await AssignmentModel.findById(mine.id).populate(assignmentPopulate));
+  if (active.length > 0) {
+    const holder = await ResponderModel.findById(active[0].responderProfileId);
+    throw ApiError.conflict(`This incident is already claimed by ${holder?.unitName ?? "another unit"}. It must be released before it can be claimed again.`);
+  }
+  if (!["SUBMITTED", "ACKNOWLEDGED", "ASSIGNED"].includes(incident.status)) throw ApiError.badRequest(`Cannot claim an incident while it is ${incident.status}`);
+  const assignment = await AssignmentModel.findOneAndUpdate(
+    { incidentId: id, responderProfileId: profile.id },
+    { $set: { status: "PENDING", assignedById: actor.id, respondedAt: null, completedAt: null }, $setOnInsert: { incidentId: id, responderProfileId: profile.id } },
+    { new: true, upsert: true },
+  ).populate(assignmentPopulate);
+  if (incident.status !== "ASSIGNED") {
+    await IncidentModel.findByIdAndUpdate(id, { $set: { status: "ASSIGNED" } });
+    await StatusHistoryModel.create({ entityType: "INCIDENT", entityId: id, fromStatus: incident.status, toStatus: "ASSIGNED", changedById: actor.id, note: `Claimed by ${profile.unitName}` });
+  }
+  await ResponderModel.findByIdAndUpdate(profile.id, { $set: { readiness: "DEPLOYED" } });
+  await writeAudit({ actorId: actor.id, actorEmail: actor.email, action: "incident.claim", targetType: "Incident", targetId: id, details: { unit: profile.unitName }, ipAddress: ip });
+  return out(assignment);
+}
+
+/** Release a claim: the holding unit (or an admin) frees the incident back to the pool. */
+export async function releaseIncident(actor: AuthUser, id: string, ip?: string) {
+  const incident = await IncidentModel.findById(id);
+  if (!incident) throw ApiError.notFound("Incident not found");
+  if (incident.status === "IN_PROGRESS") throw ApiError.badRequest("This incident is already in progress and cannot be released");
+  let scope: string[] | null = null;
+  if (actor.role === "RESPONDER") {
+    const profile = await ResponderModel.findOne({ userId: actor.id });
+    if (!profile) throw ApiError.forbidden("You do not have a responder profile");
+    scope = [profile.id];
+  }
+  const active = await AssignmentModel.find({ incidentId: id, status: { $in: ["PENDING", "ACCEPTED"] }, ...(scope ? { responderProfileId: { $in: scope } } : {}) });
+  if (active.length === 0) throw ApiError.badRequest("There is no active claim to release");
+  await AssignmentModel.updateMany({ _id: { $in: active.map((a) => a.id) } }, { $set: { status: "CANCELLED" } });
+  const remaining = await AssignmentModel.countDocuments({ incidentId: id, status: { $in: ["PENDING", "ACCEPTED"] } });
+  if (remaining === 0 && incident.status === "ASSIGNED") {
+    await IncidentModel.findByIdAndUpdate(id, { $set: { status: "ACKNOWLEDGED" } });
+    await StatusHistoryModel.create({ entityType: "INCIDENT", entityId: id, fromStatus: "ASSIGNED", toStatus: "ACKNOWLEDGED", changedById: actor.id, note: "Claim released — back in the pool" });
+  }
+  await writeAudit({ actorId: actor.id, actorEmail: actor.email, action: "incident.release", targetType: "Incident", targetId: id, ipAddress: ip });
+  return { released: true };
 }
 
 export async function respondToAssignment(actor: AuthUser, incidentId: string, action: "accept" | "decline" | "complete") {

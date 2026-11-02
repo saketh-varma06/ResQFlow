@@ -1,6 +1,6 @@
 import { Schema, model, Types } from "mongoose";
-import { PRIORITY_LEVELS, SOS_CATEGORIES, SOS_STATUSES } from "./enums";
-import type { PriorityLevel, SOSCategory, SOSStatus } from "../types/enums";
+import { PRIORITY_LEVELS, SOS_CATEGORIES, SOS_STATUSES, VERIFICATION_STATUSES, VULNERABLE_GROUPS } from "./enums";
+import type { PriorityLevel, SOSCategory, SOSStatus, VerificationStatus, VulnerableGroup } from "../types/enums";
 
 /** Collection: sosRequests — mirrors the former Prisma model `SOSRequest`. `location` stays the human-readable string (API contract). */
 export interface SosRequest {
@@ -14,6 +14,9 @@ export interface SosRequest {
   priorityScore: number;
   priorityLevel: PriorityLevel;
   priorityReasons: string[];
+  verificationStatus: VerificationStatus;
+  duplicateOfId?: string | null;
+  vulnerableGroups: VulnerableGroup[];
   location: string;
   area?: string;
   latitude?: number;
@@ -38,6 +41,9 @@ const sosRequestSchema = new Schema<SosRequest>(
     priorityScore: { type: Number, default: 0 },
     priorityLevel: { type: String, enum: PRIORITY_LEVELS, default: "LOW" },
     priorityReasons: { type: [String], default: [] },
+    verificationStatus: { type: String, enum: VERIFICATION_STATUSES, default: "UNVERIFIED" },
+    duplicateOfId: { type: String, default: null },
+    vulnerableGroups: { type: [String], enum: VULNERABLE_GROUPS, default: [] },
     location: { type: String, required: true },
     area: { type: String },
     latitude: { type: Number },

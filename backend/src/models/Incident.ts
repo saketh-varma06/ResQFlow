@@ -1,6 +1,6 @@
 import { Schema, model, Types } from "mongoose";
-import { INCIDENT_TYPES, INCIDENT_STATUSES, PRIORITY_LEVELS, SEVERITIES } from "./enums";
-import type { IncidentStatus, IncidentType, PriorityLevel, Severity } from "../types/enums";
+import { INCIDENT_TYPES, INCIDENT_STATUSES, PRIORITY_LEVELS, SEVERITIES, VERIFICATION_STATUSES, VULNERABLE_GROUPS } from "./enums";
+import type { IncidentStatus, IncidentType, PriorityLevel, Severity, VerificationStatus, VulnerableGroup } from "../types/enums";
 
 /** Collection: incidents — mirrors the former Prisma model `Incident`. `location` stays the human-readable string (API contract). */
 export interface Incident {
@@ -20,6 +20,9 @@ export interface Incident {
   priorityScore: number;
   priorityLevel: PriorityLevel;
   priorityReasons: string[];
+  verificationStatus: VerificationStatus;
+  duplicateOfId?: string | null;
+  vulnerableGroups: VulnerableGroup[];
   reporterId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +46,9 @@ const incidentSchema = new Schema<Incident>(
     priorityScore: { type: Number, default: 0 },
     priorityLevel: { type: String, enum: PRIORITY_LEVELS, default: "LOW" },
     priorityReasons: { type: [String], default: [] },
+    verificationStatus: { type: String, enum: VERIFICATION_STATUSES, default: "UNVERIFIED" },
+    duplicateOfId: { type: String, default: null },
+    vulnerableGroups: { type: [String], enum: VULNERABLE_GROUPS, default: [] },
     reporterId: { type: String, required: true, ref: "User" },
   },
   { timestamps: true },

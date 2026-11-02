@@ -13,7 +13,7 @@ import { Select } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { api, ApiError, type Envelope, type ListEnvelope } from "@/lib/api";
 import { enqueueOutbox } from "@/lib/outbox";
-import { SOS_CATEGORIES, fmtDate, titleCase, type ApiSos } from "@/lib/apiTypes";
+import { SOS_CATEGORIES, VULNERABLE_GROUPS, fmtDate, titleCase, type ApiSos } from "@/lib/apiTypes";
 import { useApi } from "@/hooks/useApi";
 import { useAuth } from "@/context/AuthContext";
 
@@ -27,6 +27,7 @@ export default function SosPage() {
   const [people, setPeople] = useState(1);
   const [injuries, setInjuries] = useState(0);
   const [trapped, setTrapped] = useState(false);
+  const [vulnerable, setVulnerable] = useState<string[]>([]);
   const [location, setLocation] = useState("");
   const [area, setArea] = useState(user?.area ?? "North District");
   const [phone, setPhone] = useState(user?.phone ?? "");
@@ -59,7 +60,7 @@ export default function SosPage() {
   async function submit() {
     setBusy(true); setError("");
     const payload = {
-      need: need.trim(), category, people, injuriesReported: injuries, trapped,
+      need: need.trim(), category, people, injuriesReported: injuries, trapped, vulnerableGroups: vulnerable,
       location: location.trim(), area, details: details.trim() || undefined, phone: phone.trim() || undefined,
       latitude: coords?.lat, longitude: coords?.lng,
     };
@@ -67,7 +68,7 @@ export default function SosPage() {
       const r = await api<Envelope<ApiSos>>("/api/sos", { method: "POST", body: JSON.stringify(payload) });
       setCreated(r.data);
       setConfirmOpen(false);
-      setNeed(""); setDetails(""); setInjuries(0); setTrapped(false);
+      setNeed(""); setDetails(""); setInjuries(0); setTrapped(false); setVulnerable([]);
     } catch (err) {
       const retryable = !(err instanceof ApiError) || err.status === 0 || err.status >= 500;
       if (retryable) {
@@ -151,6 +152,18 @@ export default function SosPage() {
                 <input type="checkbox" checked={trapped} onChange={(e) => setTrapped(e.target.checked)} className="h-4 w-4 accent-red-600" />
                 People are trapped or stranded and cannot leave on their own
               </label>
+              <fieldset className="space-y-1.5">
+                <legend className="text-sm font-medium">Vulnerable people involved? (optional — raises your priority, and responders see why)</legend>
+                <div className="flex flex-wrap gap-2">
+                  {VULNERABLE_GROUPS.map((g) => (
+                    <label key={g.value} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${vulnerable.includes(g.value) ? "border-red-600 bg-red-50 font-semibold text-red-800" : ""}`}>
+                      <input type="checkbox" className="h-4 w-4 accent-red-600" checked={vulnerable.includes(g.value)}
+                        onChange={(e) => setVulnerable((v) => e.target.checked ? [...v, g.value] : v.filter((x) => x !== g.value))} />
+                      {g.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <div className="space-y-1.5">
                 <Label htmlFor="location">Location</Label>
                 <div className="flex gap-2">
@@ -196,6 +209,7 @@ export default function SosPage() {
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Emergency</dt><dd className="text-right font-semibold">{need}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Location</dt><dd className="text-right font-semibold">{location}{coords ? ` (${coords.lat}, ${coords.lng})` : ""}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">People / injuries</dt><dd className="font-semibold">{people} / {injuries}{trapped ? " · trapped" : ""}</dd></div>
+            {vulnerable.length > 0 && <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Vulnerable</dt><dd className="text-right font-semibold">{vulnerable.map((v) => titleCase(v)).join(", ")}</dd></div>}
           </dl>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Go back</Button>

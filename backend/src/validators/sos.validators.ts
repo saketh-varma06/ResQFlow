@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SOSCategory, SOSStatus } from "../types/enums";
+import { SOSCategory, SOSStatus, VulnerableGroup } from "../types/enums";
 import { lat, lng, paginationQuery } from "./common";
 export const createSosSchema = z.object({
   need: z.string().trim().min(3).max(200),
@@ -13,7 +13,9 @@ export const createSosSchema = z.object({
   phone: z.string().trim().max(20).optional(),
   injuriesReported: z.coerce.number().int().min(0).max(100_000).optional().default(0),
   trapped: z.coerce.boolean().optional().default(false),
+  vulnerableGroups: z.array(z.nativeEnum(VulnerableGroup)).max(5).optional().default([]),
 });
+export const markDuplicateSchema = z.object({ duplicateOfId: z.string().min(1) });
 export const listSosQuery = paginationQuery.extend({ status: z.nativeEnum(SOSStatus).optional(), mine: z.coerce.boolean().optional() });
 export const updateSosStatusSchema = z.object({ status: z.nativeEnum(SOSStatus) });
 export const assignSosSchema = z.object({ responderProfileId: z.string().min(1) });

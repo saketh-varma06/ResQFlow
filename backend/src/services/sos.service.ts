@@ -23,7 +23,7 @@ const sosDetailPopulate = [
 
 export async function createSos(actor: AuthUser, input: z.infer<typeof createSosSchema>, ip?: string) {
   const now = new Date();
-  const priority = computePriority({ category: input.category, peopleAffected: input.people, injuriesReported: input.injuriesReported, trapped: input.trapped, submittedAt: now, now });
+  const priority = computePriority({ category: input.category, peopleAffected: input.people, injuriesReported: input.injuriesReported, trapped: input.trapped, vulnerableGroups: input.vulnerableGroups, submittedAt: now, now });
   const created = await SosRequestModel.create({ ...input, citizenId: actor.id, priorityScore: priority.score, priorityLevel: priority.level, priorityReasons: priority.reasons });
   const sos = await SosRequestModel.findById(created.id).populate(sosPopulate);
   await StatusHistoryModel.create({ entityType: "SOS", entityId: created.id, fromStatus: null, toStatus: "SUBMITTED", changedById: actor.id, note: "SOS submitted" });
@@ -83,11 +83,35 @@ export async function assignSos(actor: AuthUser, id: string, input: z.infer<type
   }
   const profile = await ResponderModel.findById(profileId).populate("user");
   if (!profile) throw ApiError.notFound("Responder unit not found");
+  // Claim lock: once a unit holds an ASSIGNED SOS, no other unit can take it until it is released.
+  if (sos.status === "ASSIGNED" && sos.responderProfileId && sos.responderProfileId !== profile.id) {
+    const holder = await ResponderModel.findById(sos.responderProfileId);
+    throw ApiError.conflict(`This SOS is already claimed by ${holder?.unitName ?? "another unit"}. It must be released before it can be reassigned.`);
+  }
   if (!["SUBMITTED", "ACKNOWLEDGED", "ASSIGNED"].includes(sos.status)) throw ApiError.badRequest(`Cannot assign a unit while the request is ${sos.status}`);
   const updated = await SosRequestModel.findByIdAndUpdate(id, { $set: { responderProfileId: profile.id, status: "ASSIGNED" } }, { new: true }).populate(sosPopulate);
   if (sos.status !== "ASSIGNED") await StatusHistoryModel.create({ entityType: "SOS", entityId: id, fromStatus: sos.status, toStatus: "ASSIGNED", changedById: actor.id, note: `Assigned to ${profile.unitName}` });
   await writeAudit({ actorId: actor.id, actorEmail: actor.email, action: "sos.assign", targetType: "SOSRequest", targetId: id, details: { responderProfileId: profile.id, unit: profile.unitName }, ipAddress: ip });
   await notifyUser(profile.userId, "SOS assigned to your unit", `${sos.need} — ${sos.location}`, "SOS_UPDATE", { type: "SOSRequest", id });
   if (sos.citizenId !== actor.id) await notifyUser(sos.citizenId, "Help is on the way", `Unit ${profile.unitName} was assigned to your SOS request.`, "SOS_UPDATE", { type: "SOSRequest", id });
+  return out(updated);
+}
+
+/** Release a claim: the holding unit (or an admin) frees the SOS back to the queue. */
+export async function releaseSos(actor: AuthUser, id: string, ip?: string) {
+  const sos = await SosRequestModel.findById(id);
+  if (!sos) throw ApiError.notFound("SOS request not found");
+  if (!sos.responderProfileId) throw ApiError.badRequest("This SOS is not claimed by any unit");
+  if (sos.status !== "ASSIGNED") throw ApiError.badRequest(`A claim can only be released while the request is ASSIGNED (it is ${sos.status})`);
+  if (actor.role === "RESPONDER") {
+    const own = await ResponderModel.findOne({ userId: actor.id });
+    if (!own || own.id !== sos.responderProfileId) throw ApiError.forbidden("Only the unit holding this claim can release it");
+  }
+  const holder = await ResponderModel.findById(sos.responderProfileId);
+  const updated = await SosRequestModel.findByIdAndUpdate(id, { $set: { responderProfileId: null, status: "ACKNOWLEDGED" } }, { new: true }).populate(sosPopulate);
+  await StatusHistoryModel.create({ entityType: "SOS", entityId: id, fromStatus: "ASSIGNED", toStatus: "ACKNOWLEDGED", changedById: actor.id, note: `Claim released by ${actor.role === "ADMIN" ? "admin" : holder?.unitName ?? "responder unit"}` });
+  await writeAudit({ actorId: actor.id, actorEmail: actor.email, action: "sos.release", targetType: "SOSRequest", targetId: id, details: { releasedUnit: holder?.unitName }, ipAddress: ip });
+  if (holder && holder.userId !== actor.id) await notifyUser(holder.userId, "SOS claim released", `The claim on "${sos.need}" was released and the request returned to the queue.`, "SOS_UPDATE", { type: "SOSRequest", id });
+  emitToRole("RESPONDER", "sos:updated", out(updated));
   return out(updated);
 }

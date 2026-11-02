@@ -17,3 +17,11 @@ export const decline = asyncHandler(async (req: Request, res: Response) => { res
 export const complete = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.respondToAssignment(req.user!, params<z.infer<typeof idParam>>(req).id, "complete") }); });
 export const remove = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.deleteIncident(req.user!, params<z.infer<typeof idParam>>(req).id, req.ip) }); });
 export const addNote = asyncHandler(async (req: Request, res: Response) => { res.status(201).json({ data: await svc.addNote(req.user!, params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof addNoteSchema>>(req).note, req.ip) }); });
+import * as vsvc from "../services/verification.service";
+import type { markDuplicateSchema as incMarkDup } from "../validators/incident.validators";
+export const duplicates = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await vsvc.duplicateCandidates("INCIDENT", params<z.infer<typeof idParam>>(req).id) }); });
+export const verify = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await vsvc.verifyEntity(req.user!, "INCIDENT", params<z.infer<typeof idParam>>(req).id, req.ip) }); });
+export const markDuplicate = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await vsvc.markDuplicate(req.user!, "INCIDENT", params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof incMarkDup>>(req).duplicateOfId, req.ip) }); });
+export const unflagDuplicate = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await vsvc.unflagDuplicate(req.user!, "INCIDENT", params<z.infer<typeof idParam>>(req).id, req.ip) }); });
+export const claim = asyncHandler(async (req: Request, res: Response) => { res.status(201).json({ data: await svc.claimIncident(req.user!, params<z.infer<typeof idParam>>(req).id, req.ip) }); });
+export const release = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.releaseIncident(req.user!, params<z.infer<typeof idParam>>(req).id, req.ip) }); });

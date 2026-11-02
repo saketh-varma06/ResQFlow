@@ -22,6 +22,7 @@ export interface PriorityInput {
   peopleAffected?: number;
   injuriesReported?: number;
   trapped?: boolean;
+  vulnerableGroups?: string[];
   submittedAt: Date;
   now?: Date;
 }
@@ -67,6 +68,13 @@ export function computePriority(input: PriorityInput): PriorityResult {
     reasons.push(`${injuries} reported ${injuries === 1 ? "injury" : "injuries"} (+${pts})`);
   }
   if (input.trapped) { score += 15; reasons.push("People reported trapped (+15)"); }
+  const vuln = input.vulnerableGroups ?? [];
+  if (vuln.length > 0) {
+    const pts = Math.min(15, vuln.length * 5);
+    score += pts;
+    const labels: Record<string, string> = { ELDERLY: "elderly people", CHILDREN: "children", DISABILITY: "people with disabilities", MEDICAL_DEPENDENCE: "people dependent on medical equipment/medication", PREGNANT: "pregnant people" };
+    reasons.push(`Vulnerable people reported: ${vuln.map((g) => labels[g] ?? g.toLowerCase()).join(", ")} (+${pts})`);
+  }
   const now = input.now ?? new Date();
   const minutes = Math.max(0, Math.floor((now.getTime() - input.submittedAt.getTime()) / 60000));
   const waitPts = Math.min(10, Math.floor(minutes / 15));

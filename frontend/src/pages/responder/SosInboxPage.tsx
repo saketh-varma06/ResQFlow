@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { PriorityBadge, StatusBadge } from "@/components/StatusBadge";
+import { PriorityBadge, StatusBadge, VerificationBadge } from "@/components/StatusBadge";
+import { VerificationPanel } from "@/components/VerificationPanel";
 import { EmptyState, LoadingCards } from "@/components/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,12 @@ export default function SosInboxPage() {
   const myId = profile.data?.data.id;
   const rows = [...(list.data?.data ?? [])].sort((a, b) => b.priorityScore - a.priorityScore);
 
-  async function act(id: string, action: "ack" | "assign" | "start" | "resolve") {
+  async function act(id: string, action: "ack" | "assign" | "start" | "resolve" | "release") {
     setError("");
     try {
       if (action === "ack") await api(`/api/sos/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: "ACKNOWLEDGED" }) });
       if (action === "assign") await api(`/api/sos/${id}/assign`, { method: "POST", body: JSON.stringify({ responderProfileId: myId }) });
+      if (action === "release") await api(`/api/sos/${id}/release`, { method: "POST" });
       if (action === "start") await api(`/api/sos/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: "IN_PROGRESS" }) });
       if (action === "resolve") await api(`/api/sos/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: "RESOLVED" }) });
       void list.reload();
@@ -45,7 +47,7 @@ export default function SosInboxPage() {
               {rows.length === 0 ? <TableRow><TableCell colSpan={6}><EmptyState title="No SOS requests" description="New SOS requests will appear here in real time." /></TableCell></TableRow>
                 : rows.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell><p className="font-semibold">{s.need}</p><p className="text-xs text-muted-foreground">{titleCase(s.category)} · {s.location} · {s.people} people{s.trapped ? " · trapped" : ""}{s.injuriesReported ? ` · ${s.injuriesReported} injuries` : ""}</p></TableCell>
+                    <TableCell><p className="font-semibold">{s.need}</p><p className="text-xs text-muted-foreground">{titleCase(s.category)} · {s.location} · {s.people} people{s.trapped ? " · trapped" : ""}{s.injuriesReported ? ` · ${s.injuriesReported} injuries` : ""}</p><span className="mt-1 inline-block"><VerificationBadge status={s.verificationStatus} /></span></TableCell>
                     <TableCell><PriorityBadge level={s.priorityLevel} score={s.priorityScore} /></TableCell>
                     <TableCell><StatusBadge status={s.status} /></TableCell>
                     <TableCell>{s.responderProfile?.unitName ?? <span className="text-muted-foreground">Unassigned</span>}</TableCell>
@@ -55,6 +57,7 @@ export default function SosInboxPage() {
                       {s.status === "SUBMITTED" && <Button size="sm" onClick={() => void act(s.id, "ack")}>Acknowledge</Button>}
                       {(s.status === "SUBMITTED" || s.status === "ACKNOWLEDGED") && <Button size="sm" onClick={() => void act(s.id, "assign")}>Assign to my unit</Button>}
                       {s.status === "ASSIGNED" && s.responderProfile?.id === myId && <Button size="sm" onClick={() => void act(s.id, "start")}>Start work</Button>}
+                      {s.status === "ASSIGNED" && s.responderProfile?.id === myId && <Button size="sm" variant="outline" onClick={() => void act(s.id, "release")}>Release claim</Button>}
                       {s.status === "IN_PROGRESS" && <Button size="sm" onClick={() => void act(s.id, "resolve")}>Resolve</Button>}
                     </div></TableCell>
                   </TableRow>))}
@@ -68,6 +71,10 @@ export default function SosInboxPage() {
             <p className="text-muted-foreground">ID <code className="font-mono">{detail.id}</code> · From {detail.citizen?.name ?? "citizen"}{detail.phone ? ` · ${detail.phone}` : ""}</p>
             {detail.details && <p>{detail.details}</p>}
             <div><p className="mb-1 font-semibold">Why this priority?</p><ul className="list-disc pl-5 text-muted-foreground">{detail.priorityReasons.map((r) => <li key={r}>{r}</li>)}</ul></div>
+            {(detail.vulnerableGroups ?? []).length > 0 && <p className="text-muted-foreground">Vulnerable people: {detail.vulnerableGroups!.map((g) => titleCase(g)).join(", ")}</p>}
+            <div><p className="mb-1 font-semibold">Verification &amp; duplicates</p>
+              <VerificationPanel kind="sos" id={detail.id} verificationStatus={detail.verificationStatus} duplicateOfId={detail.duplicateOfId} onChanged={() => { void open(detail.id); void list.reload(); }} />
+            </div>
             <div><p className="mb-1 font-semibold">Response history</p>
               {(detail.statusHistory ?? []).length === 0 ? <p className="text-muted-foreground">No history yet.</p> : (
                 <ol className="space-y-1.5">{detail.statusHistory!.map((h) => <li key={h.id}><span className="font-semibold">{titleCase(h.toStatus)}</span> <span className="text-muted-foreground">· {fmtDate(h.createdAt)}{h.changedBy ? ` · ${h.changedBy.name}` : ""}{h.note ? ` — ${h.note}` : ""}</span></li>)}</ol>)}

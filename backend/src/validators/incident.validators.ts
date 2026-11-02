@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IncidentStatus, IncidentType, Severity } from "../types/enums";
+import { IncidentStatus, IncidentType, Severity, VulnerableGroup } from "../types/enums";
 import { lat, lng, paginationQuery } from "./common";
 export const createIncidentSchema = z.object({
   title: z.string().trim().min(5).max(160),
@@ -13,7 +13,9 @@ export const createIncidentSchema = z.object({
   peopleAffected: z.coerce.number().int().min(0).max(10_000_000).optional().default(0),
   injuriesReported: z.coerce.number().int().min(0).max(100_000).optional().default(0),
   trapped: z.coerce.boolean().optional().default(false),
+  vulnerableGroups: z.array(z.nativeEnum(VulnerableGroup)).max(5).optional().default([]),
 });
+export const markDuplicateSchema = z.object({ duplicateOfId: z.string().min(1) });
 export const updateIncidentSchema = createIncidentSchema.partial();
 export const listIncidentsQuery = paginationQuery.extend({
   status: z.nativeEnum(IncidentStatus).optional(),

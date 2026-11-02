@@ -11,3 +11,10 @@ export const list = asyncHandler(async (req: Request, res: Response) => { res.js
 export const getOne = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.getSos(req.user!, params<z.infer<typeof idParam>>(req).id) }); });
 export const updateStatus = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.updateSosStatus(req.user!, params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof updateSosStatusSchema>>(req), req.ip) }); });
 export const assign = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.assignSos(req.user!, params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof assignSosSchema>>(req), req.ip) }); });
+import * as vsvc from "../services/verification.service";
+import type { markDuplicateSchema as sosMarkDup } from "../validators/sos.validators";
+export const duplicates = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await vsvc.duplicateCandidates("SOS", params<z.infer<typeof idParam>>(req).id) }); });
+export const verify = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await vsvc.verifyEntity(req.user!, "SOS", params<z.infer<typeof idParam>>(req).id, req.ip) }); });
+export const markDuplicate = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await vsvc.markDuplicate(req.user!, "SOS", params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof sosMarkDup>>(req).duplicateOfId, req.ip) }); });
+export const unflagDuplicate = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await vsvc.unflagDuplicate(req.user!, "SOS", params<z.infer<typeof idParam>>(req).id, req.ip) }); });
+export const release = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.releaseSos(req.user!, params<z.infer<typeof idParam>>(req).id, req.ip) }); });

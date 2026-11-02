@@ -175,6 +175,28 @@ paths:
       parameters: [{ $ref: "#/components/parameters/Id" }]
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [responderProfileId], properties: { responderProfileId: { type: string } } } } } }
       responses: { "200": { description: Updated SOS } }
+  /api/incidents/{id}/duplicates:
+    get: { tags: [Incidents], summary: "Stage A: deterministic duplicate candidates for this incident (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Candidate list with matchScore and matchReasons } } }
+  /api/incidents/{id}/verify:
+    post: { tags: [Incidents], summary: "Stage A: mark incident VERIFIED (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Incident } } }
+  /api/incidents/{id}/mark-duplicate:
+    post: { tags: [Incidents], summary: "Stage A: flag incident as duplicate of another (human-confirmed; reporter notified)", parameters: [{ $ref: "#/components/parameters/Id" }], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [duplicateOfId], properties: { duplicateOfId: { type: string } } } } } }, responses: { "200": { description: Incident } } }
+  /api/incidents/{id}/unflag-duplicate:
+    post: { tags: [Incidents], summary: "Stage A: clear a duplicate flag (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Incident } } }
+  /api/incidents/{id}/claim:
+    post: { tags: [Incidents], summary: "Stage A: claim lock — first responder unit claims the incident; others get 409 until released", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "201": { description: Assignment }, "409": { $ref: "#/components/responses/Error" } } }
+  /api/incidents/{id}/release:
+    post: { tags: [Incidents], summary: "Stage A: release a claim (holding unit or ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Released } } }
+  /api/sos/{id}/duplicates:
+    get: { tags: [SOS], summary: "Stage A: deterministic duplicate candidates for this SOS (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Candidate list with matchScore and matchReasons } } }
+  /api/sos/{id}/verify:
+    post: { tags: [SOS], summary: "Stage A: mark SOS VERIFIED (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: SOS } } }
+  /api/sos/{id}/mark-duplicate:
+    post: { tags: [SOS], summary: "Stage A: flag SOS as duplicate of another (human-confirmed; citizen notified)", parameters: [{ $ref: "#/components/parameters/Id" }], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [duplicateOfId], properties: { duplicateOfId: { type: string } } } } } }, responses: { "200": { description: SOS } } }
+  /api/sos/{id}/unflag-duplicate:
+    post: { tags: [SOS], summary: "Stage A: clear a duplicate flag (RESPONDER/ADMIN)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: SOS } } }
+  /api/sos/{id}/release:
+    post: { tags: [SOS], summary: "Stage A: release a claim (holding unit or ADMIN) — SOS returns to ACKNOWLEDGED, unassigned", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: SOS } } }
   /api/responders:
     get:
       tags: [Responders]

@@ -6,6 +6,7 @@ export interface ApiIncident {
   location: string; area: string; latitude?: number | null; longitude?: number | null;
   peopleAffected: number; injuriesReported: number; trapped: boolean;
   priorityScore: number; priorityLevel: string; priorityReasons: string[];
+  verificationStatus?: string; duplicateOfId?: string | null; vulnerableGroups?: string[];
   reporterId: string; reporter?: ApiUserRef; assignments?: ApiAssignment[]; statusHistory?: ApiHistoryEntry[];
   createdAt: string; updatedAt: string;
 }
@@ -14,9 +15,16 @@ export interface ApiSos {
   injuriesReported: number; trapped: boolean; location: string; area?: string | null;
   latitude?: number | null; longitude?: number | null; details?: string | null; phone?: string | null;
   status: string; priorityScore: number; priorityLevel: string; priorityReasons: string[];
+  verificationStatus?: string; duplicateOfId?: string | null; vulnerableGroups?: string[];
   responderProfile?: { id: string; unitName: string; unitType: string; user?: ApiUserRef } | null;
   statusHistory?: ApiHistoryEntry[]; createdAt: string; updatedAt: string;
 }
+export const VULNERABLE_GROUPS = [
+  { value: "ELDERLY", label: "Elderly people" }, { value: "CHILDREN", label: "Children" },
+  { value: "DISABILITY", label: "People with disabilities" }, { value: "MEDICAL_DEPENDENCE", label: "Dependent on medical equipment / medication" },
+  { value: "PREGNANT", label: "Pregnant people" },
+] as const;
+export interface ApiDuplicateCandidate { id: string; title?: string; need?: string; location: string; area?: string | null; status: string; priorityLevel: string; verificationStatus: string; createdAt: string; matchScore: number; matchReasons: string[] }
 export interface ApiAlert { id: string; title: string; type: string; severity: string; area: string; instructions: string; source: string; status: string; reach: number; issuedAt: string; expiresAt?: string | null }
 export interface ApiShelter { id: string; name: string; address: string; area: string; capacity: number; occupied: number; available: number; facilities: string[]; accessibility?: string | null; contact?: string | null; latitude?: number | null; longitude?: number | null; status: string; createdAt: string; updatedAt: string }
 export interface ApiNotification { id: string; title: string; body: string; type: string; isRead: boolean; createdAt: string; relatedEntityType?: string | null; relatedEntityId?: string | null }

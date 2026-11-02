@@ -86,3 +86,19 @@ export const AUDIT_RESULTS = ["SUCCESS", "DENIED", "WARNING"] as const;
 
 /** Which entity a statusHistory entry belongs to (unifies the two former history tables). */
 export const STATUS_HISTORY_ENTITY_TYPES = ["INCIDENT", "SOS"] as const;
+
+/** Verification lifecycle, separate from the workflow status (Ushahidi-style moderation). */
+export const VERIFICATION_STATUSES = [
+  "UNVERIFIED",
+  "VERIFIED",
+  "FLAGGED_DUPLICATE",
+] as const;
+
+/** Opt-in vulnerability flags; each flag transparently adds to the priority score with a stated reason. */
+export const VULNERABLE_GROUPS = [
+  "ELDERLY",
+  "CHILDREN",
+  "DISABILITY",
+  "MEDICAL_DEPENDENCE",
+  "PREGNANT",
+] as const;

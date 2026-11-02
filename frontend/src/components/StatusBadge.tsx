@@ -32,3 +32,8 @@ export function StatusBadge({ status }: { status: string }) {
   const label = norm.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize whitespace-nowrap ${cls}`}>{label}</span>;
 }
+export function VerificationBadge({ status }: { status?: string | null }) {
+  if (!status || status === "UNVERIFIED") return <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-slate-500">Unverified</span>;
+  if (status === "VERIFIED") return <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-emerald-700">Verified</span>;
+  return <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-red-700">Duplicate</span>;
+}

@@ -18,6 +18,8 @@ import {
   ASSIGNMENT_STATUSES,
   RESPONDER_READINESS,
   AUDIT_RESULTS,
+  VERIFICATION_STATUSES,
+  VULNERABLE_GROUPS,
 } from "../models/enums";
 
 function enumObj<T extends readonly string[]>(values: T): { [K in T[number]]: K } {
@@ -54,3 +56,7 @@ export const ResponderReadiness = enumObj(RESPONDER_READINESS);
 export type ResponderReadiness = (typeof RESPONDER_READINESS)[number];
 export const AuditResult = enumObj(AUDIT_RESULTS);
 export type AuditResult = (typeof AUDIT_RESULTS)[number];
+export const VerificationStatus = enumObj(VERIFICATION_STATUSES);
+export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
+export const VulnerableGroup = enumObj(VULNERABLE_GROUPS);
+export type VulnerableGroup = (typeof VULNERABLE_GROUPS)[number];
