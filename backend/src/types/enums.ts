@@ -1,6 +1,6 @@
 /**
  * Runtime enum objects + types with the same names the code previously
- * imported from "@prisma/client" (e.g. `z.nativeEnum(UserRole)` and
+ * imported from the Prisma client package (e.g. `z.nativeEnum(UserRole)` and
  * `type UserRole`). Values come from models/enums so there is one source.
  */
 import {
