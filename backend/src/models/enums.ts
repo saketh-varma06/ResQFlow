@@ -103,6 +103,9 @@ export const CAP_SEVERITIES = ["Extreme", "Severe", "Moderate", "Minor", "Unknow
 /** How a citizen's alert subscription targets an area. */
 export const ALERT_SUB_MODES = ["DISTRICT", "RADIUS"] as const;
 
+/** Missing persons registry (Stage G). */
+export const MISSING_PERSON_STATUSES = ["REPORTED", "SEARCHING", "FOUND_ALIVE", "FOUND_DECEASED", "CLOSED"] as const;
+
 /** Relief logistics (Stage D). */
 export const NEED_CATEGORIES = ["FOOD", "WATER", "CLOTHING", "MEDICAL", "HYGIENE", "SHELTER_SUPPLIES", "OTHER"] as const;
 export const NEED_STATUSES = ["OPEN", "FULFILLED", "CLOSED"] as const;

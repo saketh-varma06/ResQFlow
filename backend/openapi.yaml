@@ -248,6 +248,13 @@ paths:
     get: { tags: [Analytics], summary: "Stage F: one-click Situation Report from live counts (RESPONDER/ADMIN); ?format=text returns a paste-ready plain-text SitRep", responses: { "200": { description: SitRep (JSON or text) } } }
   /api/analytics/replay:
     get: { tags: [Analytics], summary: "Stage F: after-action replay stream — status transitions + audit entries merged chronologically (ADMIN, ?hours=1..168)", responses: { "200": { description: Replay events } } }
+  /api/missing-persons:
+    get: { tags: [MissingPersons], summary: "Stage G: citizens list ONLY their own reports; staff get the searchable tracing registry", responses: { "200": { description: Reports } } }
+    post: { tags: [MissingPersons], summary: "Stage G: file a missing person report (any signed-in user)", requestBody: { required: true, content: { application/json: { schema: { type: object, required: [fullName, lastSeenLocation, reporterRelationship, reporterPhone], properties: { fullName: { type: string }, ageApprox: { type: integer }, lastSeenLocation: { type: string }, reporterRelationship: { type: string }, reporterPhone: { type: string } } } } } }, responses: { "201": { description: Report } } }
+  /api/missing-persons/{id}:
+    get: { tags: [MissingPersons], summary: "Stage G: one report — reporter or staff only; other citizens get 404 (existence is not disclosed)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Report }, "404": { $ref: "#/components/responses/Error" } } }
+  /api/missing-persons/{id}/status:
+    patch: { tags: [MissingPersons], summary: "Stage G: tracing status update (RESPONDER/ADMIN); FOUND_* requires a resolution note; reporter is notified", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: Report } } }
   /api/responders:
     get:
       tags: [Responders]

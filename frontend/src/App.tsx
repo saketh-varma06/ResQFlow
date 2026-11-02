@@ -16,6 +16,8 @@ const CitizenMapPage = lazy(() => import("@/pages/citizen/MapPage"));
 const AlertsPage = lazy(() => import("@/pages/citizen/AlertsPage"));
 const RequestsPage = lazy(() => import("@/pages/citizen/RequestsPage"));
 const NotificationsPage = lazy(() => import("@/pages/citizen/NotificationsPage"));
+const CitizenMissingPage = lazy(() => import("@/pages/citizen/MissingPersonsPage"));
+const MissingRegistryPage = lazy(() => import("@/pages/shared/MissingPersonsRegistryPage"));
 const ProfilePage = lazy(() => import("@/pages/citizen/ProfilePage"));
 const CommandCentre = lazy(() => import("@/pages/responder/CommandCentre"));
 const AssignedPage = lazy(() => import("@/pages/responder/AssignedPage"));
@@ -52,6 +54,7 @@ export default function App() {
         <Route path="map" element={<CitizenMapPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="requests" element={<RequestsPage />} />
+        <Route path="missing" element={<CitizenMissingPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
@@ -59,6 +62,7 @@ export default function App() {
         <Route index element={<CommandCentre />} />
         <Route path="assigned" element={<AssignedPage />} />
         <Route path="sos" element={<SosInboxPage />} />
+        <Route path="missing" element={<MissingRegistryPage />} />
         <Route path="map" element={<ResponderMapPage />} />
         <Route path="incidents/:id" element={<IncidentDetailsPage />} />
         <Route path="history" element={<HistoryPage />} />
@@ -69,6 +73,7 @@ export default function App() {
         <Route path="map" element={<AdminMapPage />} />
         <Route path="alerts" element={<AlertManagement />} />
         <Route path="shelters" element={<ShelterManagement />} />
+        <Route path="missing" element={<MissingRegistryPage />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="responders" element={<ResponderManagement />} />
         <Route path="analytics" element={<AnalyticsPage />} />

@@ -1,0 +1,11 @@
+import type { Request, Response } from "express";
+import { asyncHandler } from "../utils/asyncHandler";
+import { body, params, query } from "../middleware/validate";
+import * as svc from "../services/missingperson.service";
+import type { z } from "zod";
+import type { createMissingPersonSchema, listMissingPersonsQuery, updateMissingPersonStatusSchema } from "../validators/missingperson.validators";
+import type { idParam } from "../validators/common";
+export const list = asyncHandler(async (req: Request, res: Response) => { res.json(await svc.listReports(req.user!, query<z.infer<typeof listMissingPersonsQuery>>(req))); });
+export const getOne = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.getReport(req.user!, params<z.infer<typeof idParam>>(req).id) }); });
+export const create = asyncHandler(async (req: Request, res: Response) => { res.status(201).json({ data: await svc.createReport(req.user!, body<z.infer<typeof createMissingPersonSchema>>(req), req.ip) }); });
+export const updateStatus = asyncHandler(async (req: Request, res: Response) => { res.json({ data: await svc.updateStatus(req.user!, params<z.infer<typeof idParam>>(req).id, body<z.infer<typeof updateMissingPersonStatusSchema>>(req), req.ip) }); });

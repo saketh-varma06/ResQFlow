@@ -15,6 +15,7 @@ import { shelterRouter } from "./routes/shelter.routes";
 import { alertRouter } from "./routes/alert.routes";
 import { notificationRouter } from "./routes/notification.routes";
 import { analyticsRouter } from "./routes/analytics.routes";
+import { missingPersonRouter } from "./routes/missingperson.routes";
 import externalRouter from "./routes/external.routes";
 import { auditRouter } from "./routes/audit.routes";
 import { pushRouter } from "./routes/push.routes";
@@ -43,6 +44,7 @@ app.use("/api/analytics", analyticsRouter);
 app.use("/api/external", externalRouter);
 app.use("/api/audit-logs", auditRouter);
 app.use("/api/push", pushRouter);
+app.use("/api/missing-persons", missingPersonRouter);
 
 app.get("/api/docs.json", (_req, res) => res.json(loadOpenApiSpec()));
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(undefined, { swaggerOptions: { url: "/api/docs.json" } }));

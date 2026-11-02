@@ -1,4 +1,4 @@
-import { Bell, Home, MapPin, Siren, ClipboardList, UserRound, TriangleAlert } from "lucide-react";
+import { Bell, Home, MapPin, Siren, ClipboardList, HeartHandshake, UserRound, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "./AppShell";
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +11,7 @@ const items: NavItem[] = [
   { to: "/citizen/map", label: "Area Map", icon: MapPin },
   { to: "/citizen/alerts", label: "Disaster Alerts", icon: Bell },
   { to: "/citizen/requests", label: "My Requests", icon: ClipboardList },
+  { to: "/citizen/missing", label: "Missing Persons", icon: HeartHandshake },
   { to: "/citizen/notifications", label: "Notifications", icon: Bell },
   { to: "/citizen/profile", label: "Profile", icon: UserRound },
 ];

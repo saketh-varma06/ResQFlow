@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { idParam } from "../validators/common";
+import { createMissingPersonSchema, listMissingPersonsQuery, updateMissingPersonStatusSchema } from "../validators/missingperson.validators";
+import * as c from "../controllers/missingperson.controller";
+export const missingPersonRouter = Router();
+missingPersonRouter.use(requireAuth);
+missingPersonRouter.get("/", validate({ query: listMissingPersonsQuery }), c.list);
+missingPersonRouter.get("/:id", validate({ params: idParam }), c.getOne);
+missingPersonRouter.post("/", validate({ body: createMissingPersonSchema }), c.create);
+missingPersonRouter.patch("/:id/status", requireRole("RESPONDER", "ADMIN"), validate({ params: idParam, body: updateMissingPersonStatusSchema }), c.updateStatus);
