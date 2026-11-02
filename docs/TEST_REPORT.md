@@ -215,3 +215,23 @@ Test artefacts left in the database for inspection: citizen
 with logins (register + citizen/admin/responder logins, one wrong-password
 attempt, one fresh post-restart login) and the rate limiter was never
 tripped.
+
+## MongoDB Atlas verification — 2 Nov 2026 (live cluster)
+
+Ran `npm run verify` in `database/mongodb/` against the user's real Atlas cluster
+(Cluster0, AWS Mumbai, free tier) using the prepared Mongoose layer. **All 9 checks
+PASSED** (real round-trips; test documents were deleted by the script afterwards):
+
+1. Connect + admin ping — MongoDB reachable.
+2. Indexes built on all 10 collections, incl. the shelter `2dsphere` index (5 shelter indexes).
+3. Test user stored with a **bcrypt** password hash (60 chars), never plaintext.
+4. bcrypt compare verifies the test password.
+5. SOS document with GeoJSON location created and read back (id recorded in the run log).
+6. Two status-history rows for that SOS preserved.
+7. `$near` (5 km, Delhi point) found the test shelter.
+8. `$near` from a Chennai point correctly excluded it.
+9. A wrong-password connection was **rejected** by Atlas (authentication enforced).
+
+Scope note: this verifies the prepared Mongoose layer against Atlas. The running
+application still uses PostgreSQL; switching the app runtime to Atlas is the
+separate cutover described in `docs/DATABASE_DESIGN.md`.
