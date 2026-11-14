@@ -147,9 +147,47 @@ export async function geocodePlaces(query: string): Promise<SourceResult<GeoPlac
   });
 }
 
+export interface SachetItem { headline: string; category: string; severity: "RED" | "ORANGE" | "YELLOW"; publishedAt: string; link: string }
+/**
+ * NDMA SACHET is the Government of India's official CAP alert system: the RSS feed
+ * republishes live warnings issued by IMD (weather), CWC (floods) and state disaster
+ * authorities. IMD's own data APIs are IP-whitelisted (verified: HTTP 401 from this
+ * server), so SACHET is the official, publicly readable route to IMD warnings.
+ * The feed repeats each warning in several languages; we keep the English editions.
+ */
+export function parseSachetRss(xml: string): SachetItem[] {
+  const items: SachetItem[] = [];
+  const seen = new Set<string>();
+  const blocks = xml.split(/<item>/).slice(1);
+  const parsed = blocks.map((block) => ({
+    headline: xmlField(block, "title"),
+    link: xmlField(block, "link"),
+    category: xmlField(block, "category") || "Alert",
+    pubDate: xmlField(block, "pubDate"),
+  })).filter((i) => i.headline && i.link);
+  parsed.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+  for (const i of parsed) {
+    const letters = i.headline.replace(/[^A-Za-z\u0900-\uFFFF]/g, "");
+    const ascii = i.headline.replace(/[^\x00-\x7F]/g, "").replace(/[^A-Za-z]/g, "");
+    if (!/^[A-Za-z]/.test(i.headline) || letters.length === 0 || ascii.length / letters.length < 0.85) continue;
+    const key = i.headline.toLowerCase().replace(/\s+/g, " ").trim();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const severity: SachetItem["severity"] = /extremely|very heavy|gale|cyclon|red warning|cloudburst/i.test(i.headline) ? "RED"
+      : /heavy|thunderstorm|hail|lightning|orange warning/i.test(i.headline) ? "ORANGE" : "YELLOW";
+    items.push({ headline: i.headline, category: i.category, severity, publishedAt: i.pubDate ? new Date(i.pubDate).toISOString() : new Date().toISOString(), link: i.link });
+    if (items.length >= 10) break;
+  }
+  return items;
+}
+export async function getSachetWarnings(): Promise<SourceResult<SachetItem[]>> {
+  const url = "https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml";
+  return cached("sachet", 10 * 60_000, "NDMA SACHET — Government of India (warnings from IMD, CWC & state authorities)", url, async () => parseSachetRss(await fetchText(url)));
+}
+
 export async function getExternalOverview(lat?: number, lon?: number) {
-  const [weather, earthquakes, gdacs, eonet, flood] = await Promise.all([getWeather(lat, lon), getEarthquakes(), getGdacs(), getEonet(), getFloodWatch()]);
-  return { weather, earthquakes, gdacs, eonet, flood, generatedAt: new Date().toISOString() };
+  const [weather, earthquakes, gdacs, eonet, flood, sachet] = await Promise.all([getWeather(lat, lon), getEarthquakes(), getGdacs(), getEonet(), getFloodWatch(), getSachetWarnings()]);
+  return { weather, earthquakes, gdacs, eonet, flood, sachet, generatedAt: new Date().toISOString() };
 }
 
 export interface EonetEvent { id: string; title: string; categories: string[]; latitude: number; longitude: number; date: string; link: string }

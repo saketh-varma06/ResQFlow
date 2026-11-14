@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { List, Map as MapIcon, Search } from "lucide-react";
+import { Crosshair, List, Map as MapIcon, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,21 @@ export default function OperationsMap({ sosScopeNote }: { sosScopeNote: string }
     setPlaceMarker({ id: "place", lat: pl.latitude, lng: pl.longitude, label: pl.name, detail: [pl.admin1, pl.country].filter(Boolean).join(", "), kind: "place", severity: "low" });
     setPlaceResults(null); setPlaceMsg("");
     setView("map");
+  }
+  function enableLocation() {
+    if (!("geolocation" in navigator)) { setPlaceMsg("This browser does not support location."); return; }
+    setPlaceMsg("Asking your browser for your location…");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Math.round(pos.coords.latitude * 10000) / 10000;
+        const lng = Math.round(pos.coords.longitude * 10000) / 10000;
+        setFocus({ lat, lng, zoom: 13 });
+        setPlaceMarker({ id: "place", lat, lng, label: "Your location", detail: "From your browser — used only to centre the map, never shared or stored", kind: "place", severity: "low" });
+        setPlaceMsg(""); setView("map");
+      },
+      () => { setPlaceMsg("Location was not shared. You can search for a place by name instead — nothing is stored either way."); },
+      { timeout: 10000 },
+    );
   }
   const [sevFilter, setSevFilter] = useState("ALL");
   const [search, setSearch] = useState("");
@@ -106,6 +121,7 @@ export default function OperationsMap({ sosScopeNote }: { sosScopeNote: string }
             <Input className="pl-9" placeholder="Find a place by name (e.g. Guwahati)…" value={placeQuery} onChange={(e) => setPlaceQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void searchPlace(); } }} aria-label="Search for a place" />
           </div>
           <Button size="sm" variant="outline" onClick={() => void searchPlace()}>Search place</Button>
+          <Button size="sm" variant="outline" onClick={enableLocation}><Crosshair className="mr-1.5 h-4 w-4" aria-hidden /> Enable location</Button>
           {placeMarker && <Button size="sm" variant="ghost" onClick={() => { setPlaceMarker(null); setFocus(null); }}>Clear marker</Button>}
         </div>
         {placeMsg && <p className="mt-2 text-xs text-muted-foreground" role="status">{placeMsg}</p>}
@@ -118,7 +134,7 @@ export default function OperationsMap({ sosScopeNote }: { sosScopeNote: string }
             ))}
           </ul>
         )}
-        <p className="mt-2 text-xs text-muted-foreground">Place search: Open-Meteo Geocoding API (free, no key). Selecting a result centres the map — it does not share or store your location.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Place search: Open-Meteo Geocoding API (free, no key). Selecting a result centres the map — it does not share or store your location. Enable location centres the map on your browser position under the same rule: used once, never shared or stored.</p>
       </CardContent></Card>
       {loading ? <LoadingCards count={2} /> : loadError ? <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{loadError}</p>
         : view === "map" ? (

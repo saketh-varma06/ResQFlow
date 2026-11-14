@@ -1,8 +1,10 @@
-import { CloudRainWind, Globe2, Mountain, RefreshCw, Satellite, Waves } from "lucide-react";
+import { useState } from "react";
+import { CloudRainWind, Crosshair, Globe2, Landmark, MapPin, Mountain, RefreshCw, Satellite, Search, Waves } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { api, type Envelope } from "@/lib/api";
-import { fmtDate, type ExtOverview, type ExtSource } from "@/lib/apiTypes";
+import { Input } from "@/components/ui/input";
+import { api, ApiError, type Envelope } from "@/lib/api";
+import { fmtDate, type ExtOverview, type ExtSource, type GeoPlace, type GeocodeResult } from "@/lib/apiTypes";
 import { useApi } from "@/hooks/useApi";
 
 function SourceMeta<T>({ s }: { s: ExtSource<T> }) {
@@ -16,10 +18,41 @@ function SourceMeta<T>({ s }: { s: ExtSource<T> }) {
   );
 }
 const levelCls = (l: string) => l === "RED" ? "bg-red-600 text-white" : l === "ORANGE" ? "bg-orange-500 text-white" : l === "GREEN" ? "bg-emerald-600 text-white" : "bg-slate-400 text-white";
+const sachetCls = (l: string) => l === "RED" ? "bg-red-600 text-white" : l === "ORANGE" ? "bg-orange-500 text-white" : "bg-amber-400 text-amber-950";
+
+interface Loc { lat: number; lon: number; label: string }
 
 export default function ExternalDataPanel() {
-  const ext = useApi(() => api<Envelope<ExtOverview>>("/api/external/overview"));
+  const [loc, setLoc] = useState<Loc | null>(null);
+  const overviewUrl = loc ? `/api/external/overview?lat=${loc.lat}&lon=${loc.lon}` : "/api/external/overview";
+  const ext = useApi(() => api<Envelope<ExtOverview>>(overviewUrl), [loc?.lat, loc?.lon]);
   const d = ext.data?.data;
+  const [placeQuery, setPlaceQuery] = useState("");
+  const [placeResults, setPlaceResults] = useState<GeoPlace[] | null>(null);
+  const [locMsg, setLocMsg] = useState("");
+  async function searchPlace() {
+    if (placeQuery.trim().length < 2) { setLocMsg("Type at least 2 characters of a place name."); return; }
+    setLocMsg("Searching…"); setPlaceResults(null);
+    try {
+      const r = await api<Envelope<GeocodeResult>>(`/api/external/geocode?q=${encodeURIComponent(placeQuery.trim())}`);
+      if (r.data.status === "unavailable" || !r.data.data) { setLocMsg("Place search is unavailable right now (external service unreachable)."); return; }
+      setPlaceResults(r.data.data);
+      setLocMsg(r.data.data.length === 0 ? "No places matched that search." : "");
+    } catch (err) { setLocMsg(err instanceof ApiError ? err.message : "Place search failed."); }
+  }
+  function pickPlace(pl: GeoPlace) {
+    setLoc({ lat: pl.latitude, lon: pl.longitude, label: [pl.name, pl.admin1].filter(Boolean).join(", ") });
+    setPlaceResults(null); setLocMsg("");
+  }
+  function enableLocation() {
+    if (!("geolocation" in navigator)) { setLocMsg("This browser does not support location."); return; }
+    setLocMsg("Asking your browser for your location…");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setLoc({ lat: Math.round(pos.coords.latitude * 10000) / 10000, lon: Math.round(pos.coords.longitude * 10000) / 10000, label: "Your location" }); setLocMsg(""); },
+      () => { setLocMsg("Location was not shared. You can search for a place instead — nothing is stored either way."); },
+      { timeout: 10000 },
+    );
+  }
   return (
     <section aria-label="External data from public sources" className="mt-6">
       <div className="mb-3 flex flex-wrap items-center gap-3">
@@ -27,11 +60,44 @@ export default function ExternalDataPanel() {
         <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-800">Live external data — public sources, not ResQFlow records</span>
         <Button size="sm" variant="outline" className="ml-auto" onClick={() => void ext.reload()} disabled={ext.loading}><RefreshCw className={`mr-1.5 h-4 w-4 ${ext.loading ? "animate-spin" : ""}`} aria-hidden /> Refresh</Button>
       </div>
+      <Card className="mb-4"><CardContent className="py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="flex items-center gap-1.5 text-sm font-semibold"><MapPin className="h-4 w-4 text-sky-700" aria-hidden /> Weather for:</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">{loc ? `${loc.label} (${loc.lat}, ${loc.lon})` : "Delhi area (default)"}</span>
+          <div className="relative min-w-52 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input className="pl-9" placeholder="Search a place (e.g. Guwahati)…" value={placeQuery} onChange={(e) => setPlaceQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void searchPlace(); } }} aria-label="Search for a place to get its weather" />
+          </div>
+          <Button size="sm" variant="outline" onClick={() => void searchPlace()}>Search place</Button>
+          <Button size="sm" variant="outline" onClick={enableLocation}><Crosshair className="mr-1.5 h-4 w-4" aria-hidden /> Enable location</Button>
+          {loc && <Button size="sm" variant="ghost" onClick={() => setLoc(null)}>Reset to Delhi</Button>}
+        </div>
+        {locMsg && <p className="mt-2 text-xs text-muted-foreground" role="status">{locMsg}</p>}
+        {placeResults && placeResults.length > 0 && (
+          <ul className="mt-2 divide-y rounded-lg border">
+            {placeResults.map((pl) => (
+              <li key={pl.id}><button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50" onClick={() => pickPlace(pl)}>
+                <span className="font-semibold">{pl.name}</span> <span className="text-muted-foreground">{[pl.admin1, pl.country].filter(Boolean).join(", ")} · {pl.latitude.toFixed(3)}, {pl.longitude.toFixed(3)}</span>
+              </button></li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-2 text-xs text-muted-foreground">Place search: Open-Meteo Geocoding API (free, no key). Selecting a result shows weather for that place. Enable location uses your browser position only to fetch local weather — it does not share or store your location.</p>
+      </CardContent></Card>
       {ext.loading && !d ? <p className="text-sm text-muted-foreground">Fetching from public sources…</p>
         : ext.error ? <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{ext.error}</p>
         : d && (
           <div className="grid gap-4 lg:grid-cols-3">
-            <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><CloudRainWind className="h-4 w-4 text-sky-700" aria-hidden /> Weather — Delhi area</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">
+            {d.sachet && <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><Landmark className="h-4 w-4 text-orange-700" aria-hidden /> Official warnings — Government of India</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">
+              {d.sachet.data ? (d.sachet.data.length ? d.sachet.data.slice(0, 5).map((w) => (
+                <p key={w.link} className="rounded bg-slate-50 px-2 py-1.5">
+                  <span className={`mr-1.5 rounded px-1.5 py-0.5 text-[10px] font-bold ${sachetCls(w.severity)}`}>{w.severity}</span>
+                  <a className="font-medium underline" href={w.link} target="_blank" rel="noreferrer">{w.headline}</a>
+                  <br /><span className="text-xs text-muted-foreground">{w.category} warning · {fmtDate(w.publishedAt)} · Official CAP alert (XML)</span></p>
+              )) : <p className="text-muted-foreground">No official warnings in the national feed right now.</p>) : <p className="text-muted-foreground">No official warning data available.</p>}
+              <SourceMeta s={d.sachet} />
+            </CardContent></Card>}
+            <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><CloudRainWind className="h-4 w-4 text-sky-700" aria-hidden /> Weather — {loc ? loc.label : "Delhi area (default)"}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">
               {d.weather.data ? (<>
                 <p className="font-display text-2xl font-bold">{d.weather.data.temperatureC}°C <span className="text-base font-semibold text-muted-foreground">{d.weather.data.condition}</span></p>
                 <p className="text-muted-foreground">Humidity {d.weather.data.humidityPct}% · Rain {d.weather.data.rainMm} mm · Wind {d.weather.data.windKph} km/h (gusts {d.weather.data.windGustsKph})</p>

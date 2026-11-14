@@ -20,7 +20,25 @@ function stubFetch() {
   }));
 }
 
+const SACHET_FIXTURE = `<?xml version="1.0"?><rss><channel>
+<item><title>Heavy Rain with surface wind (40-50 kmph) is likely to occur at isolated places over Bijapur, Dantewada in next 3 hours.</title><link>https://sachet.ndma.gov.in/cap_public_website/FetchXMLFile?identifier=111</link><category>Met</category><pubDate>Tue, 03 Nov 2026 01:58:34 GMT</pubDate></item>
+<item><title>ଭାରତ ପାଣିପାଗ ବିଭାଗର ତଥ୍ୟ ଅନୁଯାୟୀ ମଧ୍ୟମ ଧରଣର ବର୍ଷା ହେବାର ସମ୍ଭାବନା ଅଛି SRC, Odisha</title><link>https://sachet.ndma.gov.in/cap_public_website/FetchXMLFile?identifier=222</link><category>Met</category><pubDate>Tue, 03 Nov 2026 02:22:49 GMT</pubDate></item>
+<item><title>Heavy Rain with surface wind (40-50 kmph) is likely to occur at isolated places over Bijapur, Dantewada in next 3 hours.</title><link>https://sachet.ndma.gov.in/cap_public_website/FetchXMLFile?identifier=333</link><category>Met</category><pubDate>Tue, 03 Nov 2026 02:30:00 GMT</pubDate></item>
+<item><title>Thunderstorm with lightning is very likely to occur at isolated places over Patna in next 3 hours.</title><link>https://sachet.ndma.gov.in/cap_public_website/FetchXMLFile?identifier=444</link><category>Met</category><pubDate>Tue, 03 Nov 2026 02:45:00 GMT</pubDate></item>
+</channel></rss>`;
+
 describe("external parsers (pure)", () => {
+  it("parses NDMA SACHET RSS: English editions only, deduped, newest first, severity from headline", async () => {
+    const { parseSachetRss } = await import("./services/external.service");
+    const items = parseSachetRss(SACHET_FIXTURE);
+    expect(items).toHaveLength(2);
+    expect(items[0].headline).toMatch(/Thunderstorm/);
+    expect(items[0].severity).toBe("ORANGE");
+    expect(items[1].headline).toMatch(/Bijapur/);
+    expect(items[1].severity).toBe("ORANGE");
+    expect(items[1].category).toBe("Met");
+    expect(items[1].link).toContain("identifier=");
+  });
   it("filters USGS features to the region and sorts newest first", async () => {
     const { filterQuakes } = await import("./services/external.service");
     const out = filterQuakes(JSON.parse(QUAKE_FIXTURE).features);
