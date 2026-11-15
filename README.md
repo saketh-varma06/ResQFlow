@@ -116,18 +116,6 @@ cd frontend && npx vite preview      # app on :4173
 - **Backend:** http://localhost:4000 · **Health:** http://localhost:4000/api/health
 - **API docs:** http://localhost:4000/api/docs
 
-### Demo accounts (local seed only — never use in production)
-
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@resqflow.local` | `Admin@12345` |
-| Citizen | `citizen@resqflow.local` | `Citizen@12345` |
-| Responder (River Rescue 12) | `responder@resqflow.local` | `Responder@12345` |
-| Responder (Fire & Rescue 3) | `fire@resqflow.local` | `Responder@12345` |
-
-A non-demo admin can be created safely with
-`ADMIN_EMAIL=… ADMIN_NAME=… ADMIN_PASSWORD=… npm run db:seed-admin`.
-
 ## Test commands
 
 ```bash
