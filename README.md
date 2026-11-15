@@ -98,23 +98,6 @@ Placeholders only — generate your own `JWT_SECRET`. Key variables:
 
 No third-party API keys are required by any integration.
 
-## Local startup
-
-```bash
-npm install                          # all workspaces
-# set MONGODB_URI in backend/.env, then db:setup + db:seed (above)
-npm run dev                          # backend :4000 + frontend :5173 (dev servers)
-```
-or run the production build:
-```bash
-npm run build                        # backend dist/ + frontend dist/ (PWA included)
-cd backend && node dist/index.js     # API + sockets on :4000
-cd frontend && npx vite preview      # app on :4173
-```
-
-- **Frontend:** http://localhost:5173 (dev) or http://localhost:4173 (preview)
-- **Backend:** http://localhost:4000 · **Health:** http://localhost:4000/api/health
-- **API docs:** http://localhost:4000/api/docs
 
 ## Test commands
 
